@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+
+# Data directories
+trossen_ai_data/
+output_csvs/
+data/
+
+# Output files
+*.mp4
+*output
+
+# External repositories
+mujoco_scanned_objects/
+
+# Temporary or generated files
+table spoon.STL

@@ -10,6 +10,17 @@ from mujoco import viewer as mj_viewer
 from trossen_arm_mujoco.assets.food_task.single_arm_env import SingleArmTask
 from trossen_arm_mujoco.utils import make_sim_env
 
+# Evaluation target positions (from telop_scene.xml)
+CONTAINER_POS = np.array([-0.63, -0.15, 0.04])
+RAMEKIN_POSITIONS = {
+    "ramekin_1": np.array([-0.22, -0.26, 0.04]),
+    "ramekin_2": np.array([-0.36, -0.26, 0.04]),
+    "ramekin_3": np.array([-0.36, -0.12, 0.04]),
+    "ramekin_4": np.array([-0.22, -0.12, 0.04]),
+}
+REACH_THRESHOLD = 0.06  # 6cm threshold for "reached"
+DWELL_TIME = 2.0  # seconds the spoon must stay near target to count as "reached"
+
 
 def load_arm_data(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -82,8 +93,31 @@ def replay_episode_sim(
     logged_times = set()
     log_at_seconds = [5, 10, 15, 20]
 
-    # Find the end effector site/body name (spoon tip or gripper)
-    ee_site_name = "spoon_tip"  # or use "link_6" for the wrist
+    # Find the end effector body name
+    # Note: "spoon" body is the actual spoon, "link_6" is the wrist
+    ee_body_name = "spoon"
+
+    # Evaluation tracking
+    eval_results = {
+        "reached_container": False,
+        "container_reach_time": None,
+        "reached_ramekins": set(),
+        "ramekin_reach_times": {},
+        "min_container_dist": float("inf"),
+        "min_ramekin_dists": {name: float("inf") for name in RAMEKIN_POSITIONS.keys()},
+    }
+
+    # Dwell time tracking (when did we first enter the threshold zone)
+    dwell_tracking = {
+        "container_enter_time": None,
+        "ramekin_enter_times": {name: None for name in RAMEKIN_POSITIONS.keys()},
+    }
+
+    # Print actual object positions from simulation
+    print("\n[DEBUG] Actual object positions in simulation:")
+    print(f"  Container: {env.physics.named.data.xpos['container']}")
+    for name in RAMEKIN_POSITIONS.keys():
+        print(f"  {name}: {env.physics.named.data.xpos[name]}")
 
     print(f"\nWill log end effector pose at t = {log_at_seconds} seconds\n")
 
@@ -109,21 +143,82 @@ def replay_episode_sim(
 
                 env.step(action)
 
+                # Evaluation: check if spoon reached container or ramekins
+                ee_pos = env.physics.named.data.xpos[ee_body_name]
+
+                # Get actual container position from simulation
+                container_actual_pos = env.physics.named.data.xpos["container"]
+
+                # Check container reach (using XY distance to actual position)
+                container_dist = np.linalg.norm(ee_pos[:2] - container_actual_pos[:2])
+                eval_results["min_container_dist"] = min(eval_results["min_container_dist"], container_dist)
+
+                if container_dist < REACH_THRESHOLD:
+                    # Inside threshold zone
+                    if dwell_tracking["container_enter_time"] is None:
+                        dwell_tracking["container_enter_time"] = elapsed
+                    # Check if we've dwelled long enough
+                    dwell_duration = elapsed - dwell_tracking["container_enter_time"]
+                    if dwell_duration >= DWELL_TIME and not eval_results["reached_container"]:
+                        eval_results["reached_container"] = True
+                        eval_results["container_reach_time"] = dwell_tracking["container_enter_time"]
+                        print(f"[EVAL] Reached CONTAINER at t={elapsed:.2f}s (dwelled {dwell_duration:.1f}s)")
+                else:
+                    # Left threshold zone, reset dwell timer
+                    dwell_tracking["container_enter_time"] = None
+
+                # Check ramekin reach (using actual positions from simulation)
+                for ramekin_name in RAMEKIN_POSITIONS.keys():
+                    ramekin_actual_pos = env.physics.named.data.xpos[ramekin_name]
+                    ramekin_dist = np.linalg.norm(ee_pos[:2] - ramekin_actual_pos[:2])
+                    eval_results["min_ramekin_dists"][ramekin_name] = min(
+                        eval_results["min_ramekin_dists"][ramekin_name], ramekin_dist
+                    )
+
+                    if ramekin_dist < REACH_THRESHOLD:
+                        # Inside threshold zone
+                        if dwell_tracking["ramekin_enter_times"][ramekin_name] is None:
+                            dwell_tracking["ramekin_enter_times"][ramekin_name] = elapsed
+                        # Check if we've dwelled long enough
+                        dwell_duration = elapsed - dwell_tracking["ramekin_enter_times"][ramekin_name]
+                        if dwell_duration >= DWELL_TIME and ramekin_name not in eval_results["reached_ramekins"]:
+                            eval_results["reached_ramekins"].add(ramekin_name)
+                            eval_results["ramekin_reach_times"][ramekin_name] = dwell_tracking["ramekin_enter_times"][ramekin_name]
+                            print(f"[EVAL] Reached {ramekin_name.upper()} at t={elapsed:.2f}s (dwelled {dwell_duration:.1f}s)")
+                    else:
+                        # Left threshold zone, reset dwell timer
+                        dwell_tracking["ramekin_enter_times"][ramekin_name] = None
+
                 # Log end effector position at specified times
                 for t in log_at_seconds:
                     if t not in logged_times and elapsed >= t:
-                        try:
-                            ee_pos = env.physics.named.data.site_xpos[ee_site_name]
-                            print(f"t={t:2d}s: End effector XYZ = [{ee_pos[0]:.4f}, {ee_pos[1]:.4f}, {ee_pos[2]:.4f}]")
-                        except KeyError:
-                            # Fallback to link_6 body position
-                            ee_pos = env.physics.named.data.xpos["link_6"]
-                            print(f"t={t:2d}s: End effector XYZ = [{ee_pos[0]:.4f}, {ee_pos[1]:.4f}, {ee_pos[2]:.4f}]")
+                        print(f"t={t:2d}s: Spoon XYZ = [{ee_pos[0]:.4f}, {ee_pos[1]:.4f}, {ee_pos[2]:.4f}]")
                         logged_times.add(t)
 
             else:
-                # Replay finished, close viewer
+                # Replay finished, print evaluation summary
                 print(f"\nReplay complete! Total time: {duration:.2f}s")
+                print("\n" + "=" * 40)
+                print("EVALUATION RESULTS")
+                print("=" * 40)
+                if eval_results["reached_container"]:
+                    print(f"Container: REACHED at t={eval_results['container_reach_time']:.2f}s")
+                else:
+                    print("Container: NOT REACHED")
+
+                if eval_results["reached_ramekins"]:
+                    print(f"Ramekins reached: {', '.join(sorted(eval_results['reached_ramekins']))}")
+                    for name, t in sorted(eval_results["ramekin_reach_times"].items()):
+                        print(f"  - {name}: t={t:.2f}s")
+                else:
+                    print("Ramekins: NONE REACHED")
+
+                print("\n--- Minimum distances (threshold={:.2f}m) ---".format(REACH_THRESHOLD))
+                print(f"  Container: {eval_results['min_container_dist']:.3f}m")
+                for name, dist in sorted(eval_results["min_ramekin_dists"].items()):
+                    status = "REACHED" if name in eval_results["reached_ramekins"] else "missed"
+                    print(f"  {name}: {dist:.3f}m ({status})")
+                print("=" * 40)
                 break
 
             viewer.sync()

@@ -310,6 +310,57 @@ class BowlToPlatePolicy(BaseSingleArmPolicy):
             print(f"  t={wp['t']:3d}: joints={wp['qpos'][:6]}")
 
 
+class TelopPolicy(BaseSingleArmPolicy):
+    """
+    Policy based on teleoperated trajectory with key waypoints.
+    Robot interpolates smoothly between waypoints.
+    """
+
+    def generate_trajectory(self, ts_first: TimeStep, physics: Physics = None):
+        """
+        Generates trajectory from key waypoints of recorded teleoperation.
+
+        :param ts_first: The first observation of the episode.
+        :param physics: Physics instance (unused, for API compatibility).
+        """
+        GRIPPER_OPEN = 0.044
+
+        # Key waypoints extracted from teleoperation recording
+        # Each is [j1, j2, j3, j4, j5, j6, gripper_l, gripper_r]
+
+        # t=0s: Start/home position
+        home = np.array([0.0849, 0.0036, 0.0059, 0.0334, -0.0292, -0.0681, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=3s: Reach into bowl (arm extended)
+        reach_bowl = np.array([0.5037, 1.8320, 1.8053, -0.7662, 0.2317, -0.8711, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=8s: Scoop position (wrist rotated)
+        scoop = np.array([0.0772, 1.7725, 1.7874, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=12s: Move to plate area
+        above_plate = np.array([0.4080, 1.1198, 0.8974, -0.3222, -0.6323, -0.5343, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=19s: Dump food (wrist rotation)
+        dump = np.array([0.4736, 1.1870, 0.8703, -0.1677, -0.5152, -1.8313, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=22s: Return position
+        return_pos = np.array([0.2672, 1.1156, 1.1976, -0.3962, -0.3302, -0.1829, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # Build trajectory (50 steps per second)
+        self.trajectory = [
+            {"t": 0,    "qpos": home},
+            {"t": 150,  "qpos": reach_bowl},   # ~3s
+            {"t": 400,  "qpos": scoop},        # ~8s
+            {"t": 600,  "qpos": above_plate},  # ~12s
+            {"t": 950,  "qpos": dump},         # ~19s
+            {"t": 1100, "qpos": return_pos},   # ~22s
+        ]
+
+        print("Generated telop trajectory with key waypoints:")
+        for wp in self.trajectory:
+            print(f"  t={wp['t']:4d}: joints={np.round(wp['qpos'][:6], 3)}")
+
+
 class SimplePickPolicy(BaseSingleArmPolicy):
     """
     Simple policy demonstrating pick motion - move to a position and close gripper.
@@ -382,7 +433,7 @@ def test_policy(
     env = make_sim_env(
         SingleArmTask,
         xml_file="wxai/food_scene.xml",
-        task_name="single_arm",
+        task_name="single arm",
         onscreen_render=onscreen_render,
         cam_list=cam_list,
     )
@@ -394,6 +445,8 @@ def test_policy(
         policy = BowlToPlatePolicy(inject_noise)
     elif policy_name == "simple_pick":
         policy = SimplePickPolicy(inject_noise)
+    elif policy_name == "telop":
+        policy = TelopPolicy(inject_noise)
     else:
         raise ValueError(f"Unknown policy: {policy_name}")
 
@@ -431,7 +484,7 @@ if __name__ == "__main__":
         "--policy",
         type=str,
         default="bowl_to_plate",
-        choices=["bowl_to_plate", "simple_pick"],
+        choices=["bowl_to_plate", "simple_pick", "telop"],
         help="Policy to run.",
     )
     parser.add_argument(

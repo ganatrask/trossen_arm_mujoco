@@ -201,9 +201,9 @@ def test_sim_teleop():
     print(f"Control space: 7 actuators (6 arm + 1 gripper)")
     print(f"Press Ctrl+C to stop the simulation")
 
-    #plt_imgs = plot_observation_images(ts.observation, cam_list)
-    #plt.pause(0.02)
-    #plt.show(block=False)
+    plt_imgs = plot_observation_images(ts.observation, cam_list)
+    plt.pause(0.02)
+    plt.show(block=False)
 
     # Scripted policy: move to bowl, then move to plate.
     start_qpos = ts.observation["qpos"].copy()
@@ -267,8 +267,8 @@ def test_sim_teleop():
                 # Hold current pose so teleop can take over without scripted motion.
                 action = ts.observation["qpos"].copy()
                 ts = env.step(action)
-            #plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
-            #plt.pause(0.001)
+            plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
+            plt.pause(0.001)
             viewer.sync()
 
 

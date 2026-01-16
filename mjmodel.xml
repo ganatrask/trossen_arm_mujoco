@@ -1,0 +1,468 @@
+<mujoco model="wxai base scene with table">
+  <compiler angle="radian" meshdir="../meshes/" texturedir="../"/>
+
+  <option integrator="implicitfast"/>
+
+  <size nkey="1"/>
+
+  <visual>
+    <global azimuth="120" elevation="-25"/>
+    <headlight ambient="0.5 0.5 0.6" diffuse="0.6 0.65 0.75" specular="0.1 0.1 0.1"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+  </visual>
+
+  <statistic extent="0.8" center="0 0 0.3"/>
+
+  <default>
+    <default class="visual">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="trossen_black"/>
+    </default>
+    <default class="collision">
+      <geom type="cylinder" group="3"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture type="skybox" colorspace="auto" builtin="gradient" rgb1="0.9725 0.9608 0.8706" width="512" height="3072"/>
+    <texture type="2d" colorspace="auto" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <texture type="cube" colorspace="auto" name="table_tex" builtin="flat" mark="cross" rgb1="0.6 0.5 0.4" rgb2="0.6 0.5 0.4" markrgb="1 1 1" width="127" height="762"/>
+    <texture type="2d" colorspace="linear" name="plate_texture" file="meshes/plate/texture.png"/>
+    <texture type="2d" colorspace="linear" name="bradshaw_bowl_texture" file="meshes/Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/texture.png"/>
+    <texture type="2d" colorspace="linear" name="threshold_tray_texture" file="meshes/Threshold_Tray_Rectangle_Porcelain/texture.png"/>
+    <texture type="2d" colorspace="linear" name="threshold_ramekin_texture" file="meshes/Threshold_Ramekin_White_Porcelain/texture.png"/>
+    <material name="trossen_black" rgba="0.1 0.1 0.1 1"/>
+    <material name="spoon_metal" shininess="0.3" rgba="0.8 0.8 0.85 1"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="table_mat" texture="table_tex" texuniform="true" rgba="0.8 0.7 0.6 1"/>
+    <material name="plate_mat" texture="plate_texture"/>
+    <material name="bradshaw_bowl_mat" texture="bradshaw_bowl_texture"/>
+    <material name="threshold_tray_mat" texture="threshold_tray_texture"/>
+    <material name="threshold_ramekin_mat" texture="threshold_ramekin_texture"/>
+    <mesh name="base_link" content_type="model/stl" file="base_link.stl"/>
+    <mesh name="link_1" content_type="model/stl" file="link_1.stl"/>
+    <mesh name="link_2" content_type="model/stl" file="link_2.stl"/>
+    <mesh name="link_3" content_type="model/stl" file="link_3.stl"/>
+    <mesh name="link_4" content_type="model/stl" file="link_4.stl"/>
+    <mesh name="link_5" content_type="model/stl" file="link_5.stl"/>
+    <mesh name="link_6" content_type="model/stl" file="link_6.stl"/>
+    <mesh name="carriage_right" content_type="model/stl" file="carriage_right.stl"/>
+    <mesh name="carriage_left" content_type="model/stl" file="carriage_left.stl"/>
+    <mesh name="camera_mount_d405" content_type="model/stl" file="camera_mount_d405.stl"/>
+    <mesh name="d405" content_type="model/stl" file="d405.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="gripper_left" content_type="model/stl" file="gripper_left.stl"/>
+    <mesh name="gripper_right" content_type="model/stl" file="gripper_right.stl"/>
+    <mesh name="table_spoon" content_type="model/stl" file="table_spoon.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="plate_mesh" content_type="model/obj" file="plate/model.obj"/>
+    <mesh name="bradshaw_bowl_mesh" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model.obj"/>
+    <mesh name="threshold_tray_mesh" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model.obj"/>
+    <mesh name="tray_collision_0" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_0.obj"/>
+    <mesh name="tray_collision_1" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_1.obj"/>
+    <mesh name="tray_collision_2" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_2.obj"/>
+    <mesh name="tray_collision_3" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_3.obj"/>
+    <mesh name="tray_collision_4" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_4.obj"/>
+    <mesh name="tray_collision_5" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_5.obj"/>
+    <mesh name="tray_collision_6" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_6.obj"/>
+    <mesh name="tray_collision_7" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_7.obj"/>
+    <mesh name="tray_collision_8" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_8.obj"/>
+    <mesh name="tray_collision_9" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_9.obj"/>
+    <mesh name="tray_collision_10" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_10.obj"/>
+    <mesh name="tray_collision_11" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_11.obj"/>
+    <mesh name="tray_collision_12" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_12.obj"/>
+    <mesh name="tray_collision_13" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_13.obj"/>
+    <mesh name="tray_collision_14" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_14.obj"/>
+    <mesh name="tray_collision_15" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_15.obj"/>
+    <mesh name="tray_collision_16" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_16.obj"/>
+    <mesh name="tray_collision_17" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_17.obj"/>
+    <mesh name="tray_collision_18" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_18.obj"/>
+    <mesh name="tray_collision_19" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_19.obj"/>
+    <mesh name="tray_collision_20" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_20.obj"/>
+    <mesh name="tray_collision_21" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_21.obj"/>
+    <mesh name="tray_collision_22" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_22.obj"/>
+    <mesh name="tray_collision_23" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_23.obj"/>
+    <mesh name="tray_collision_24" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_24.obj"/>
+    <mesh name="tray_collision_25" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_25.obj"/>
+    <mesh name="tray_collision_26" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_26.obj"/>
+    <mesh name="tray_collision_27" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_27.obj"/>
+    <mesh name="tray_collision_28" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_28.obj"/>
+    <mesh name="tray_collision_29" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_29.obj"/>
+    <mesh name="tray_collision_30" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_30.obj"/>
+    <mesh name="tray_collision_31" content_type="model/obj" file="Threshold_Tray_Rectangle_Porcelain/model_collision_31.obj"/>
+    <mesh name="threshold_ramekin_mesh" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model.obj"/>
+    <mesh name="ramekin_collision_0" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_0.obj"/>
+    <mesh name="ramekin_collision_1" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_1.obj"/>
+    <mesh name="ramekin_collision_2" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_2.obj"/>
+    <mesh name="ramekin_collision_3" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_3.obj"/>
+    <mesh name="ramekin_collision_4" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_4.obj"/>
+    <mesh name="ramekin_collision_5" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_5.obj"/>
+    <mesh name="ramekin_collision_6" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_6.obj"/>
+    <mesh name="ramekin_collision_7" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_7.obj"/>
+    <mesh name="ramekin_collision_8" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_8.obj"/>
+    <mesh name="ramekin_collision_9" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_9.obj"/>
+    <mesh name="ramekin_collision_10" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_10.obj"/>
+    <mesh name="ramekin_collision_11" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_11.obj"/>
+    <mesh name="ramekin_collision_12" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_12.obj"/>
+    <mesh name="ramekin_collision_13" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_13.obj"/>
+    <mesh name="ramekin_collision_14" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_14.obj"/>
+    <mesh name="ramekin_collision_15" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_15.obj"/>
+    <mesh name="ramekin_collision_16" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_16.obj"/>
+    <mesh name="ramekin_collision_17" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_17.obj"/>
+    <mesh name="ramekin_collision_18" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_18.obj"/>
+    <mesh name="ramekin_collision_19" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_19.obj"/>
+    <mesh name="ramekin_collision_20" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_20.obj"/>
+    <mesh name="ramekin_collision_21" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_21.obj"/>
+    <mesh name="ramekin_collision_22" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_22.obj"/>
+    <mesh name="ramekin_collision_23" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_23.obj"/>
+    <mesh name="ramekin_collision_24" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_24.obj"/>
+    <mesh name="ramekin_collision_25" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_25.obj"/>
+    <mesh name="ramekin_collision_26" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_26.obj"/>
+    <mesh name="ramekin_collision_27" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_27.obj"/>
+    <mesh name="ramekin_collision_28" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_28.obj"/>
+    <mesh name="ramekin_collision_29" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_29.obj"/>
+    <mesh name="ramekin_collision_30" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_30.obj"/>
+    <mesh name="ramekin_collision_31" content_type="model/obj" file="Threshold_Ramekin_White_Porcelain/model_collision_31.obj"/>
+    <mesh name="bradshaw_collision_0" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_0.obj"/>
+    <mesh name="bradshaw_collision_1" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_1.obj"/>
+    <mesh name="bradshaw_collision_2" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_2.obj"/>
+    <mesh name="bradshaw_collision_3" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_3.obj"/>
+    <mesh name="bradshaw_collision_4" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_4.obj"/>
+    <mesh name="bradshaw_collision_5" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_5.obj"/>
+    <mesh name="bradshaw_collision_6" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_6.obj"/>
+    <mesh name="bradshaw_collision_7" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_7.obj"/>
+    <mesh name="bradshaw_collision_8" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_8.obj"/>
+    <mesh name="bradshaw_collision_9" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_9.obj"/>
+    <mesh name="bradshaw_collision_10" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_10.obj"/>
+    <mesh name="bradshaw_collision_11" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_11.obj"/>
+    <mesh name="bradshaw_collision_12" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_12.obj"/>
+    <mesh name="bradshaw_collision_13" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_13.obj"/>
+    <mesh name="bradshaw_collision_14" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_14.obj"/>
+    <mesh name="bradshaw_collision_15" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_15.obj"/>
+    <mesh name="bradshaw_collision_16" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_16.obj"/>
+    <mesh name="bradshaw_collision_17" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_17.obj"/>
+    <mesh name="bradshaw_collision_18" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_18.obj"/>
+    <mesh name="bradshaw_collision_19" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_19.obj"/>
+    <mesh name="bradshaw_collision_20" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_20.obj"/>
+    <mesh name="bradshaw_collision_21" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_21.obj"/>
+    <mesh name="bradshaw_collision_22" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_22.obj"/>
+    <mesh name="bradshaw_collision_23" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_23.obj"/>
+    <mesh name="bradshaw_collision_24" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_24.obj"/>
+    <mesh name="bradshaw_collision_25" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_25.obj"/>
+    <mesh name="bradshaw_collision_26" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_26.obj"/>
+    <mesh name="bradshaw_collision_27" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_27.obj"/>
+    <mesh name="bradshaw_collision_28" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_28.obj"/>
+    <mesh name="bradshaw_collision_29" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_29.obj"/>
+    <mesh name="bradshaw_collision_30" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_30.obj"/>
+    <mesh name="bradshaw_collision_31" content_type="model/obj" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_31.obj"/>
+  </asset>
+
+  <worldbody>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="tabletop" size="0.8 0.8 0.02" pos="0 0 0.02" type="box" material="table_mat"/>
+    <camera name="cam_high" pos="0.6 0.6 0.6" quat="0.317262 0.213989 0.516615 0.765939" fovy="50"/>
+    <camera name="cam_front" pos="0.7 0 0.4" quat="0.601501 0.371748 0.371748 0.601501" fovy="60"/>
+    <camera name="cam_side" pos="0 0.7 0.4" quat="0 0 0.525731 0.850651" fovy="60"/>
+    <camera name="cam_food_service" pos="0 -0.5 0.6" quat="0.8702 0.492699 0 0" fovy="60"/>
+    <light name="top_light" pos="0 0 1.5" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <light name="side_light" pos="0.5 0.5 1" dir="-0.408248 -0.408248 -0.816497" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2"/>
+    <body name="base_link" quat="1.32679e-06 0 0 1">
+      <inertial pos="-0.00014175 -5.228e-05 0.0317518" quat="0.503748 -0.50738 -0.49423 -0.49451" mass="0.459699" diaginertia="0.000213926 0.000416701 0.000448963"/>
+      <geom class="visual" mesh="base_link"/>
+      <geom class="collision" size="0.031 0.0325" pos="0 0 0.0325"/>
+      <body name="link_1" pos="0 0 0.05725">
+        <inertial pos="-0.00011075 0.00171176 0.0204459" quat="0.313955 0.305238 -0.643575 0.627752" mass="0.152704" diaginertia="0.000203432 0.000173907 8.3521e-05"/>
+        <joint name="joint_0" pos="0 0 0" axis="0 0 1" range="-3.05433 3.05433" armature="0.032" frictionloss="0.1"/>
+        <geom class="visual" mesh="link_1"/>
+        <body name="link_2" pos="0.02 0 0.04625">
+          <inertial pos="-0.131215 -0.00292583 0.00021345" quat="-0.00123582 0.706546 -0.00109575 0.707665" mass="1.15316" diaginertia="0.0179449 0.0173612 0.00102628"/>
+          <joint name="joint_1" pos="0 0 0" axis="0 1 0" range="0 3.14159" armature="0.032" frictionloss="0.1"/>
+          <geom class="visual" mesh="link_2"/>
+          <geom class="collision" size="0.031 0.015" quat="0.707107 0.707107 0 0" type="capsule"/>
+          <geom class="collision" size="0.0975 0.02 0.02" pos="-0.131 0 0" type="box"/>
+          <body name="link_3" pos="-0.264 0 0">
+            <inertial pos="0.180836 -0.0009409 0.0555494" quat="0.0103901 0.669684 -0.0033175 0.742566" mass="0.686666" diaginertia="0.00566898 0.00547578 0.00059316"/>
+            <joint name="joint_2" pos="0 0 0" axis="0 -1 0" range="0 2.35619" armature="0.032" frictionloss="0.1"/>
+            <geom class="visual" mesh="link_3"/>
+            <geom class="collision" size="0.031 0.015" quat="0.707107 0.707107 0 0" type="capsule"/>
+            <geom class="collision" size="0.08 0.02 0.02" pos="0.13 0 0.06" type="box"/>
+            <body name="link_4" pos="0.245 0 0.06">
+              <inertial pos="0.0579784 0.00027145 0.0588445" quat="0.948688 0.0346237 0.307828 0.0635164" mass="0.457899" diaginertia="0.000670827 0.000661455 0.000288648"/>
+              <joint name="joint_3" pos="0 0 0" axis="0 -1 0" range="-1.5708 1.5708" armature="0.0018" frictionloss="0.1"/>
+              <geom class="visual" mesh="link_4"/>
+              <geom class="collision" size="0.031 0.015" quat="0.707107 0.707107 0 0" type="capsule"/>
+              <body name="link_5" pos="0.06775 0 0.0455">
+                <inertial pos="0.00412447 -1.138e-05 -0.0428318" quat="0.496144 0.502128 0.503595 0.498098" mass="0.366939" diaginertia="0.000320622 0.00026751 0.000189108"/>
+                <joint name="joint_4" pos="0 0 0" axis="0 0 -1" range="-1.5708 1.5708" armature="0.0018" frictionloss="0.1"/>
+                <geom class="visual" mesh="link_5"/>
+                <geom class="collision" size="0.031 0.028" pos="0 0 0.03"/>
+                <body name="link_6" pos="0.02895 0 -0.0455">
+                  <inertial pos="0.046841 0.00145133 0.00895674" quat="0.275854 0.291255 -0.691957 0.600225" mass="0.671874" diaginertia="0.00118316 0.00110863 0.00078309"/>
+                  <joint name="joint_5" pos="0 0 0" axis="1 0 0" range="-3.14159 3.14159" armature="0.0018" frictionloss="0.1"/>
+                  <geom class="visual" mesh="link_6"/>
+                  <geom class="collision" size="0.029 0.05" quat="0.707107 0 0.707107 0"/>
+                  <geom class="collision" size="0.0125 0.094 0.031" pos="0.0685 0 0" type="box"/>
+                  <geom class="visual" pos="0.012 0 0" quat="1 0 0 0" mesh="camera_mount_d405"/>
+                  <geom class="collision" size="0.0155 0.025 0.025" pos="0.0513206 0 0.0569399" quat="0.984808 0 0.173648 0" type="box"/>
+                  <geom class="visual" size="0.0115 0.021 0.021" pos="0.0513206 0 0.0569399" quat="0.984808 0 0.173648 0" type="box"/>
+                  <site name="camera_color_frame" pos="0.05864 0.009 0.05427" quat="0.984808 0 0.173648 0"/>
+                  <camera name="cam" pos="0.05864 0.009 0.05427" quat="0.579242 0.40556 -0.40556 -0.579242" fovy="87"/>
+                  <body name="carriage_right" pos="0.0865 -0.023 0">
+                    <inertial pos="0.00169015 0.00592793 0.00201817" quat="-0.370973 0.740886 -0.0847721 0.553427" mass="0.081271" diaginertia="4.29565e-05 3.87081e-05 2.21528e-05"/>
+                    <joint name="right_carriage_joint" pos="0 0 0" axis="0 -1 0" type="slide" range="0 0.044" armature="0.1" frictionloss="0.1"/>
+                    <geom class="visual" mesh="carriage_right"/>
+                    <geom class="visual" mesh="gripper_right"/>
+                    <geom class="collision" size="0.0275 0.005 0.01" pos="0.0286 0.01436 0.0037" quat="0.99257 -0.00451 0.10246 0.06547" type="box"/>
+                    <geom class="collision" size="0.0275 0.005 0.01" pos="0.0285 0.01429 -0.00973" quat="0.98344 0.0133 -0.16893 0.06427" type="box"/>
+                    <geom class="collision" size="0.00732 0.00214 0.00767" pos="0.0622 0.02083 -0.00105" type="box"/>
+                  </body>
+                  <body name="carriage_left" pos="0.0865 0.023 0">
+                    <inertial pos="0.00169017 -0.00592796 -0.00365701" quat="-0.0382691 0.628022 -0.255101 0.734198" mass="0.081271" diaginertia="4.21112e-05 3.61943e-05 2.40003e-05"/>
+                    <joint name="left_carriage_joint" pos="0 0 0" axis="0 1 0" type="slide" range="0 0.044" armature="0.1" frictionloss="0.1"/>
+                    <geom class="visual" mesh="carriage_left"/>
+                    <geom class="visual" mesh="gripper_left"/>
+                    <geom class="collision" size="0.0275 0.005 0.01" pos="0.0286 -0.01436 0.0037" quat="0.99257 0.00451 0.10246 -0.06547" type="box"/>
+                    <geom class="collision" size="0.0275 0.005 0.01" pos="0.0285 -0.01429 -0.00973" quat="0.98344 -0.0133 -0.16893 -0.06427" type="box"/>
+                    <geom class="collision" size="0.00732 0.00214 0.00767" pos="0.0622 -0.02083 -0.00105" type="box"/>
+                  </body>
+                  <body name="spoon" pos="0.12 0 -0.02" quat="0.707107 0 0 0.707107">
+                    <inertial pos="0 0 0.05" mass="0.03" diaginertia="5e-05 5e-05 1e-05"/>
+                    <geom type="mesh" contype="0" conaffinity="0" group="2" material="spoon_metal" mesh="table_spoon"/>
+                    <geom type="mesh" group="3" rgba="0.8 0.8 0.85 0.5" mesh="table_spoon"/>
+                    <site name="spoon_tip" pos="0.18 0 0" rgba="1 0 0 0.5"/>
+                    <site name="spoon_scoop" pos="0.15 0 0" size="0.015" rgba="0 1 0 0.3"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="threshold_tray" pos="0 0.05 0.04">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="threshold_tray_mat" mesh="threshold_tray_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="tray_collision_31"/>
+    </body>
+    <body name="ramekin_1" pos="-0.06 0.02 0.06">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="threshold_ramekin_mat" mesh="threshold_ramekin_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_31"/>
+    </body>
+    <body name="ramekin_2" pos="0.06 0.02 0.06">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="threshold_ramekin_mat" mesh="threshold_ramekin_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_31"/>
+    </body>
+    <body name="ramekin_3" pos="-0.06 0.1 0.06">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="threshold_ramekin_mat" mesh="threshold_ramekin_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_31"/>
+    </body>
+    <body name="ramekin_4" pos="0.06 0.1 0.06">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="threshold_ramekin_mat" mesh="threshold_ramekin_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="ramekin_collision_31"/>
+    </body>
+    <body name="bradshaw_bowl" pos="-0.2996 -0.171 0">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" material="bradshaw_bowl_mat" mesh="bradshaw_bowl_mesh"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_0"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_1"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_2"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_3"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_4"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_5"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_6"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_7"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_8"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_9"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_10"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_11"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_12"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_13"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_14"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_15"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_16"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_17"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_18"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_19"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_20"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_21"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_22"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_23"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_24"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_25"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_26"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_27"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_28"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_29"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_30"/>
+      <geom type="mesh" rgba="0 0 0 0" mesh="bradshaw_collision_31"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <joint joint1="right_carriage_joint" joint2="left_carriage_joint" polycoef="0 1 0 0 0"/>
+  </equality>
+
+  <actuator>
+    <general name="joint_0" joint="joint_0" ctrlrange="-3.05433 3.05433" forcerange="-27 27" biastype="affine" gainprm="40" biasprm="0 -40 -2.5"/>
+    <general name="joint_1" joint="joint_1" ctrlrange="0 3.14159" forcerange="-27 27" biastype="affine" gainprm="40" biasprm="0 -40 -2.5"/>
+    <general name="joint_2" joint="joint_2" ctrlrange="0 2.35619" forcerange="-27 27" biastype="affine" gainprm="40" biasprm="0 -40 -2.5"/>
+    <general name="joint_3" joint="joint_3" ctrlrange="-1.5708 1.5708" forcerange="-7 7" biastype="affine" gainprm="20" biasprm="0 -20 -0.5"/>
+    <general name="joint_4" joint="joint_4" ctrlrange="-1.5708 1.5708" forcerange="-7 7" biastype="affine" gainprm="10" biasprm="0 -10 -1"/>
+    <general name="joint_5" joint="joint_5" ctrlrange="-3.14159 3.14159" forcerange="-7 7" biastype="affine" gainprm="10" biasprm="0 -10 -1"/>
+    <general name="left_gripper" joint="left_carriage_joint" ctrlrange="0 0.044" forcerange="-400 400" biastype="affine" gainprm="100" biasprm="0 -100 -10"/>
+  </actuator>
+
+  <keyframe>
+    <key name="home"/>
+  </keyframe>
+</mujoco>

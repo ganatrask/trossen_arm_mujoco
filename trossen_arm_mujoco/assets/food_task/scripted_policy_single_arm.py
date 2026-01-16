@@ -1,0 +1,461 @@
+"""
+Scripted policy for single-arm manipulation tasks.
+
+This module provides waypoint-based trajectory control for a single WXAI arm
+using joint-space control (qpos), not Cartesian control.
+
+Supports both:
+- Direct joint angles (qpos)
+- XYZ positions (converted to joint angles via IK)
+
+Action format: [joint1, joint2, joint3, joint4, joint5, joint6, gripper_left, gripper_right]
+- Joints 0-5: Arm joint angles (radians)
+- Joints 6-7: Gripper fingers (coupled, 0.044 = open, 0.012 = closed)
+"""
+
+import argparse
+
+import mujoco
+from dm_control.mujoco.engine import Physics
+from dm_control.suite import base
+from dm_env import TimeStep
+from mujoco import viewer as mj_viewer
+import numpy as np
+
+from trossen_arm_mujoco.constants import START_ARM_POSE
+from trossen_arm_mujoco.utils import get_observation_base, make_sim_env
+
+
+def solve_ik(
+    physics: Physics,
+    target_pos: np.ndarray,
+    site_name: str = "camera_color_frame",
+    max_iterations: int = 100,
+    tolerance: float = 1e-4,
+) -> np.ndarray:
+    """
+    Solve inverse kinematics to find joint angles for a target XYZ position.
+
+    Uses MuJoCo's Jacobian-based IK with damped least squares.
+
+    :param physics: The MuJoCo physics instance.
+    :param target_pos: Target XYZ position [x, y, z].
+    :param site_name: Name of the site to move to target (end-effector).
+    :param max_iterations: Maximum IK iterations.
+    :param tolerance: Position error tolerance.
+    :return: Joint angles [j1, j2, j3, j4, j5, j6] that reach target.
+    """
+    model = physics.model.ptr
+    data = physics.data.ptr
+
+    # Get site ID
+    site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, site_name)
+    if site_id == -1:
+        # Fallback to link_6 body
+        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "link_6")
+        use_body = True
+    else:
+        use_body = False
+
+    # Save original qpos
+    original_qpos = data.qpos.copy()
+
+    # IK parameters
+    damping = 0.1
+    step_size = 0.5
+
+    for iteration in range(max_iterations):
+        mujoco.mj_forward(model, data)
+
+        # Get current end-effector position
+        if use_body:
+            current_pos = data.xpos[body_id].copy()
+        else:
+            current_pos = data.site_xpos[site_id].copy()
+
+        # Compute position error
+        error = target_pos - current_pos
+        error_norm = np.linalg.norm(error)
+
+        if error_norm < tolerance:
+            break
+
+        # Compute Jacobian (3 x nv for position only)
+        jacp = np.zeros((3, model.nv))
+        if use_body:
+            mujoco.mj_jacBody(model, data, jacp, None, body_id)
+        else:
+            mujoco.mj_jacSite(model, data, jacp, None, site_id)
+
+        # Only use first 6 columns (arm joints)
+        J = jacp[:, :6]
+
+        # Damped least squares: dq = J^T (J J^T + lambda^2 I)^-1 * error
+        JJT = J @ J.T + damping**2 * np.eye(3)
+        dq = J.T @ np.linalg.solve(JJT, error)
+
+        # Update joint angles
+        data.qpos[:6] += step_size * dq
+        mujoco.mj_forward(model, data)
+
+    # Get result
+    result_qpos = data.qpos[:6].copy()
+
+    # Restore original qpos
+    data.qpos[:] = original_qpos
+    mujoco.mj_forward(model, data)
+
+    return result_qpos
+
+
+class SingleArmTask(base.Task):
+    """
+    Single-arm task for scripted policy testing.
+    Uses joint-space control (8 DOF: 6 arm + 2 gripper).
+    """
+
+    def __init__(
+        self,
+        random: int | None = None,
+        onscreen_render: bool = False,
+        cam_list: list[str] = [],
+    ):
+        super().__init__(random=random)
+        self.cam_list = cam_list if cam_list else ["cam_high"]
+
+    def before_step(self, action: np.ndarray, physics: Physics) -> None:
+        """Process action before simulation step."""
+        # Handle 8-value qpos action -> 7-value actuator control
+        if action.shape[0] == 7:
+            super().before_step(action, physics)
+            return
+        if action.shape[0] != 8:
+            raise ValueError("Expected action length 7 (ctrl) or 8 (qpos).")
+
+        arm_action = action[:6]
+        gripper_action = action[6]
+        env_action = np.concatenate([arm_action, [gripper_action]])
+        super().before_step(env_action, physics)
+
+    def initialize_episode(self, physics: Physics) -> None:
+        """Reset robot to start pose."""
+        with physics.reset_context():
+            physics.named.data.qpos[:8] = START_ARM_POSE[:8]
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_env_state(physics: Physics) -> np.ndarray:
+        return physics.data.qpos.copy()
+
+    def get_observation(self, physics: Physics) -> dict:
+        obs = get_observation_base(physics, self.cam_list)
+        obs["qpos"] = physics.data.qpos.copy()[:8]
+        obs["qvel"] = physics.data.qvel.copy()[:8]
+        obs["env_state"] = self.get_env_state(physics)
+        return obs
+
+    def get_reward(self, physics: Physics) -> int:
+        return 0
+
+
+class BaseSingleArmPolicy:
+    """
+    Base class for single-arm trajectory-based policies using joint control.
+
+    :param inject_noise: Whether to inject noise into actions for robustness testing.
+    """
+
+    def __init__(self, inject_noise: bool = False):
+        self.inject_noise = inject_noise
+        self.step_count = 0
+        self.trajectory: list[dict] = []
+        self.curr_waypoint: dict = None
+        self.physics: Physics = None
+
+    def set_physics(self, physics: Physics):
+        """Set the physics instance for IK solving."""
+        self.physics = physics
+
+    def generate_trajectory(self, ts_first: TimeStep, physics: Physics = None):
+        """
+        Generate a trajectory based on the initial timestep.
+
+        :param ts_first: The first observation of the episode.
+        :param physics: Physics instance for IK solving (optional).
+        :raises NotImplementedError: Must be implemented in subclasses.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def interpolate(
+        curr_waypoint: dict,
+        next_waypoint: dict,
+        t: int,
+    ) -> np.ndarray:
+        """
+        Linearly interpolates joint positions between two waypoints.
+
+        :param curr_waypoint: The current waypoint with 't' and 'qpos'.
+        :param next_waypoint: The next waypoint with 't' and 'qpos'.
+        :param t: The current timestep.
+        :return: Interpolated joint positions (8 values).
+        """
+        t_frac = (t - curr_waypoint["t"]) / (next_waypoint["t"] - curr_waypoint["t"])
+        curr_qpos = curr_waypoint["qpos"]
+        next_qpos = next_waypoint["qpos"]
+        qpos = curr_qpos + (next_qpos - curr_qpos) * t_frac
+        return qpos
+
+    def __call__(self, ts: TimeStep) -> np.ndarray:
+        """
+        Executes the policy for one timestep.
+
+        :param ts: The current observation timestep.
+        :return: The computed action (8 joint values) for the current timestep.
+        """
+        # Generate trajectory at first timestep
+        if self.step_count == 0:
+            self.generate_trajectory(ts, self.physics)
+
+        # Get current and next waypoints
+        if self.trajectory[0]["t"] == self.step_count:
+            self.curr_waypoint = self.trajectory.pop(0)
+
+        # If we're at the last waypoint, stay there
+        if len(self.trajectory) == 0:
+            action = self.curr_waypoint["qpos"].copy()
+        else:
+            next_waypoint = self.trajectory[0]
+            action = self.interpolate(self.curr_waypoint, next_waypoint, self.step_count)
+
+        # Inject noise if enabled
+        if self.inject_noise:
+            scale = 0.01
+            action[:6] = action[:6] + np.random.uniform(-scale, scale, 6)
+
+        self.step_count += 1
+        return action
+
+
+class BowlToPlatePolicy(BaseSingleArmPolicy):
+    """
+    Policy for scooping from bowl and transferring to plate.
+
+    The scene has:
+    - Bowl (bradshaw_bowl) at position (-0.05, 0.15, 0.04)
+    - Plate at position (-0.05, -0.15, 0.04)
+    - Food particles in the bowl
+    """
+
+    def generate_trajectory(self, ts_first: TimeStep, physics: Physics = None):
+        """
+        Generates a trajectory to scoop from bowl and move to plate.
+
+        Uses IK to convert XYZ marker positions to joint angles.
+
+        Trajectory:
+        1. Move above the bowl (marker at -0.0496, 0.1520, 0.2497)
+        2. Move above the plate (marker at -0.0447, -0.1417, 0.2019)
+        3. Return home
+
+        :param ts_first: The first observation of the episode.
+        :param physics: Physics instance for IK solving (optional).
+        """
+        # Get starting joint positions
+        start_qpos = ts_first.observation["qpos"].copy()
+        print(f"Starting qpos: {start_qpos}")
+
+        # Gripper values
+        GRIPPER_OPEN = 0.044
+
+        # Home/start position
+        home_qpos = start_qpos.copy()
+
+        # Target XYZ positions (from pose_helper marker positions)
+        above_bowl_xyz = np.array([-0.0496, 0.1520, 0.2497])
+        above_plate_xyz = np.array([-0.0447, -0.1417, 0.2019])
+
+        # Solve IK if physics is available
+        if physics is not None:
+            print("Solving IK for target positions...")
+            above_bowl_joints = solve_ik(physics, above_bowl_xyz)
+            above_plate_joints = solve_ik(physics, above_plate_xyz)
+            print(f"  Above bowl IK solution: {above_bowl_joints}")
+            print(f"  Above plate IK solution: {above_plate_joints}")
+        else:
+            # Fallback to pre-computed values
+            print("No physics provided, using pre-computed joint angles")
+            above_bowl_joints = np.array([0.051, 0.577, 0.671, -0.098, 0.001, -0.001])
+            above_plate_joints = np.array([-0.207, 0.495, 0.263, -0.107, 0.154, 0.006])
+
+        # Build full qpos with gripper
+        above_bowl_qpos = np.concatenate([above_bowl_joints, [GRIPPER_OPEN, GRIPPER_OPEN]])
+        above_plate_qpos = np.concatenate([above_plate_joints, [GRIPPER_OPEN, GRIPPER_OPEN]])
+
+        # Build trajectory with timing
+        self.trajectory = [
+            {"t": 0,   "qpos": home_qpos},            # Start at home
+            {"t": 80,  "qpos": above_bowl_qpos},      # Point 1: Above bowl
+            {"t": 140, "qpos": above_bowl_qpos},      # Pause above bowl
+            {"t": 220, "qpos": above_plate_qpos},     # Point 2: Above plate
+            {"t": 280, "qpos": above_plate_qpos},     # Pause above plate
+            {"t": 360, "qpos": home_qpos},            # Return home
+            {"t": 400, "qpos": home_qpos},            # Stay at home
+        ]
+
+        print("Generated bowl-to-plate trajectory:")
+        print(f"  Point 1: Above bowl (xyz={above_bowl_xyz})")
+        print(f"  Point 2: Above plate (xyz={above_plate_xyz})")
+        for wp in self.trajectory:
+            print(f"  t={wp['t']:3d}: joints={wp['qpos'][:6]}")
+
+
+class SimplePickPolicy(BaseSingleArmPolicy):
+    """
+    Simple policy demonstrating pick motion - move to a position and close gripper.
+    """
+
+    def generate_trajectory(self, ts_first: TimeStep):
+        """
+        Generates a simple pick trajectory.
+
+        :param ts_first: The first observation of the episode.
+        """
+        start_qpos = ts_first.observation["qpos"].copy()
+
+        GRIPPER_OPEN = 0.044
+        GRIPPER_CLOSED = 0.012
+
+        # Target position (reach forward and down)
+        target_qpos = np.array([
+            0.0,   # j1: base rotation
+            0.9,   # j2: shoulder forward
+            0.9,   # j3: elbow bent
+            0.0,   # j4: wrist rotation
+            0.3,   # j5: wrist bend
+            0.0,   # j6: gripper rotation
+            GRIPPER_OPEN, GRIPPER_OPEN
+        ])
+
+        # Close gripper
+        grasp_qpos = target_qpos.copy()
+        grasp_qpos[6:8] = [GRIPPER_CLOSED, GRIPPER_CLOSED]
+
+        # Lift up
+        lift_qpos = np.array([
+            0.0,
+            0.5,
+            0.5,
+            0.0,
+            0.3,
+            0.0,
+            GRIPPER_CLOSED, GRIPPER_CLOSED
+        ])
+
+        self.trajectory = [
+            {"t": 0,   "qpos": start_qpos},
+            {"t": 60,  "qpos": target_qpos},    # Move to target
+            {"t": 80,  "qpos": target_qpos},    # Pause
+            {"t": 100, "qpos": grasp_qpos},     # Close gripper
+            {"t": 130, "qpos": grasp_qpos},     # Hold
+            {"t": 180, "qpos": lift_qpos},      # Lift
+            {"t": 250, "qpos": lift_qpos},      # Stay lifted
+        ]
+
+
+def test_policy(
+    policy_name: str = "bowl_to_plate",
+    episode_len: int = 450,
+    onscreen_render: bool = True,
+    inject_noise: bool = False,
+):
+    """
+    Tests the single-arm scripted policy in simulation.
+
+    :param policy_name: Name of policy to use ('bowl_to_plate' or 'simple_pick').
+    :param episode_len: Length of episode in timesteps.
+    :param onscreen_render: Whether to show the MuJoCo viewer.
+    :param inject_noise: Whether to add noise to actions.
+    """
+    # Setup environment
+    cam_list = ["cam_high", "cam_front"]
+    env = make_sim_env(
+        SingleArmTask,
+        xml_file="wxai/food_scene.xml",
+        task_name="single_arm",
+        onscreen_render=onscreen_render,
+        cam_list=cam_list,
+    )
+
+    ts = env.reset()
+
+    # Select policy
+    if policy_name == "bowl_to_plate":
+        policy = BowlToPlatePolicy(inject_noise)
+    elif policy_name == "simple_pick":
+        policy = SimplePickPolicy(inject_noise)
+    else:
+        raise ValueError(f"Unknown policy: {policy_name}")
+
+    # Pass physics to policy for IK solving
+    policy.set_physics(env.physics)
+
+    print(f"Running {policy_name} policy for {episode_len} steps...")
+    print(f"Initial qpos: {ts.observation['qpos']}")
+
+    if onscreen_render:
+        # Use MuJoCo viewer
+        with mj_viewer.launch_passive(env.physics.model.ptr, env.physics.data.ptr) as viewer:
+            for step in range(episode_len):
+                if not viewer.is_running():
+                    break
+                action = policy(ts)
+                ts = env.step(action)
+                viewer.sync()
+        print("Simulation complete.")
+    else:
+        # Run without viewer
+        for step in range(episode_len):
+            action = policy(ts)
+            ts = env.step(action)
+            if step % 100 == 0:
+                print(f"Step {step}: qpos = {ts.observation['qpos'][:6]}")
+        print("Simulation complete.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Test single-arm scripted policies."
+    )
+    parser.add_argument(
+        "--policy",
+        type=str,
+        default="bowl_to_plate",
+        choices=["bowl_to_plate", "simple_pick"],
+        help="Policy to run.",
+    )
+    parser.add_argument(
+        "--episode_len",
+        type=int,
+        default=450,
+        help="Episode length in timesteps.",
+    )
+    parser.add_argument(
+        "--no_render",
+        action="store_true",
+        help="Disable visualization.",
+    )
+    parser.add_argument(
+        "--inject_noise",
+        action="store_true",
+        help="Inject noise into actions.",
+    )
+
+    args = parser.parse_args()
+
+    test_policy(
+        policy_name=args.policy,
+        episode_len=args.episode_len,
+        onscreen_render=not args.no_render,
+        inject_noise=args.inject_noise,
+    )

@@ -1,0 +1,176 @@
+<mujoco model="wxai spoon scene with mocap control">
+  <include file="wxai_follower_spoon_mocap.xml"/>
+
+  <extension>
+    <plugin plugin="mujoco.sdf.bowl">
+      <instance name="bowl_shape_medium">
+        <config key="height"    value="0.05"/>
+        <config key="radius"    value="0.08"/>
+        <config key="thickness" value="0.002"/>
+      </instance>
+    </plugin>
+  </extension>
+
+  <compiler meshdir="../meshes" texturedir="../"/>
+
+  <statistic center="0 0 0.3" extent="0.8"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.65 0.75" ambient="0.5 0.5 0.6" specular="0.1 0.1 0.1"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="120" elevation="-25"/>
+    <quality shadowsize="4096"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.9725 0.9608 0.8706" rgb2="0.5 0.5 0.5" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+
+    <texture name="table_tex" type="cube" builtin="flat" mark="cross" width="127" height="762"
+      rgb1="0.6 0.5 0.4" rgb2="0.6 0.5 0.4" markrgb="1 1 1" random="0.01"/>
+    <material name="table_mat" texture="table_tex" texuniform="true" rgba="0.8 0.7 0.6 1"/>
+
+    <texture name="plate_texture" type="2d"
+             file="meshes/plate/texture.png"/>
+    <material name="plate_mat" texture="plate_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="plate_mesh"
+          file="plate/model.obj"/>
+
+    <!-- Bradshaw plastic bowl from scanned objects -->
+    <texture name="bradshaw_bowl_texture" type="2d"
+             file="meshes/Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/texture.png"/>
+    <material name="bradshaw_bowl_mat" texture="bradshaw_bowl_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="bradshaw_bowl_mesh"
+          file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model.obj"/>
+
+    <!-- Collision meshes for Bradshaw bowl (all 32 parts) -->
+    <mesh name="bradshaw_collision_0" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_0.obj"/>
+    <mesh name="bradshaw_collision_1" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_1.obj"/>
+    <mesh name="bradshaw_collision_2" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_2.obj"/>
+    <mesh name="bradshaw_collision_3" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_3.obj"/>
+    <mesh name="bradshaw_collision_4" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_4.obj"/>
+    <mesh name="bradshaw_collision_5" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_5.obj"/>
+    <mesh name="bradshaw_collision_6" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_6.obj"/>
+    <mesh name="bradshaw_collision_7" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_7.obj"/>
+    <mesh name="bradshaw_collision_8" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_8.obj"/>
+    <mesh name="bradshaw_collision_9" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_9.obj"/>
+    <mesh name="bradshaw_collision_10" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_10.obj"/>
+    <mesh name="bradshaw_collision_11" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_11.obj"/>
+    <mesh name="bradshaw_collision_12" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_12.obj"/>
+    <mesh name="bradshaw_collision_13" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_13.obj"/>
+    <mesh name="bradshaw_collision_14" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_14.obj"/>
+    <mesh name="bradshaw_collision_15" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_15.obj"/>
+    <mesh name="bradshaw_collision_16" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_16.obj"/>
+    <mesh name="bradshaw_collision_17" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_17.obj"/>
+    <mesh name="bradshaw_collision_18" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_18.obj"/>
+    <mesh name="bradshaw_collision_19" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_19.obj"/>
+    <mesh name="bradshaw_collision_20" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_20.obj"/>
+    <mesh name="bradshaw_collision_21" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_21.obj"/>
+    <mesh name="bradshaw_collision_22" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_22.obj"/>
+    <mesh name="bradshaw_collision_23" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_23.obj"/>
+    <mesh name="bradshaw_collision_24" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_24.obj"/>
+    <mesh name="bradshaw_collision_25" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_25.obj"/>
+    <mesh name="bradshaw_collision_26" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_26.obj"/>
+    <mesh name="bradshaw_collision_27" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_27.obj"/>
+    <mesh name="bradshaw_collision_28" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_28.obj"/>
+    <mesh name="bradshaw_collision_29" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_29.obj"/>
+    <mesh name="bradshaw_collision_30" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_30.obj"/>
+    <mesh name="bradshaw_collision_31" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_31.obj"/>
+  </asset>
+
+  <!-- Weld constraint: links mocap body to end-effector (link_6) -->
+  <equality>
+    <weld body1="mocap_target" body2="link_6" solref="0.01 1" solimp=".25 .25 0.001"/>
+  </equality>
+
+  <worldbody>
+    <!-- Lights -->
+    <light name="top_light" pos="0 0 1.5" dir="0 0 -1" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" directional="false"/>
+    <light name="side_light" pos="0.5 0.5 1.0" dir="-0.5 -0.5 -1" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" directional="false"/>
+
+    <!-- Floor -->
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Table -->
+    <geom name="tabletop" type="box" size="0.4 0.4 0.02" pos="0 0 0.02" material="table_mat"/>
+
+    <!-- Cameras -->
+    <camera name="cam_high" pos="0.6 0.6 0.6" xyaxes="-1 1 0 -0.4 -0.4 1.4" mode="fixed" fovy="50"/>
+    <camera name="cam_front" pos="0.7 0 0.4" xyaxes="0 1 0 -0.5 0 1" mode="fixed" fovy="60"/>
+
+    <!-- MOCAP TARGET BODY - Move this to control the arm -->
+    <!-- Initial position is roughly where the end-effector starts -->
+    <body mocap="true" name="mocap_target" pos="-0.05 0.15 0.25">
+      <!-- RGB axes for visualization -->
+      <site pos="0 0 0" size="0.03 0.003 0.003" type="box" name="mocap_site_x" rgba="1 0 0 0.8"/>
+      <site pos="0 0 0" size="0.003 0.03 0.003" type="box" name="mocap_site_y" rgba="0 1 0 0.8"/>
+      <site pos="0 0 0" size="0.003 0.003 0.03" type="box" name="mocap_site_z" rgba="0 0 1 0.8"/>
+    </body>
+
+    <!-- Plate -->
+    <body name="plate" pos="-0.05 -0.15 0.04">
+      <geom type="mesh" mesh="plate_mesh" material="plate_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Bradshaw bowl -->
+    <body name="bradshaw_bowl" pos="-0.05 0.15 0.04">
+      <geom type="mesh" mesh="bradshaw_bowl_mesh" material="bradshaw_bowl_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="bradshaw_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- Food particles -->
+    <body name="food_1" pos="-0.05 0.15 0.175">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_2" pos="-0.03 0.15 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_3" pos="-0.07 0.16 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_4" pos="-0.04 0.14 0.183">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_5" pos="-0.06 0.155 0.187">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+  </worldbody>
+</mujoco>

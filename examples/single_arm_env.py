@@ -222,6 +222,7 @@ def test_sim_teleop():
     stuck_error_threshold = 0.05
     stuck_patience = 50
     improvement_eps = 1e-3
+    scripted_policy_enabled = False
 
     def compute_target(t: int) -> tuple[str, np.ndarray, np.ndarray]:
         if t < move_steps:
@@ -246,24 +247,29 @@ def test_sim_teleop():
 
     with mj_viewer.launch_passive(env.physics.model.ptr, env.physics.data.ptr) as viewer:
         while viewer.is_running():
-            phase, action, target_qpos = compute_target(step_count)
-            ts = env.step(action)
-            error = np.linalg.norm(ts.observation["qpos"][:6] - target_qpos[:6])
-            if error > stuck_error_threshold:
-                if last_error is not None and (last_error - error) < improvement_eps:
-                    stuck_count += 1
+            if scripted_policy_enabled:
+                phase, action, target_qpos = compute_target(step_count)
+                ts = env.step(action)
+                error = np.linalg.norm(ts.observation["qpos"][:6] - target_qpos[:6])
+                if error > stuck_error_threshold:
+                    if last_error is not None and (last_error - error) < improvement_eps:
+                        stuck_count += 1
+                    else:
+                        stuck_count = 0
+                    if stuck_count >= stuck_patience:
+                        print(f"Warning: possible stuck state in {phase} (error={error:.3f})")
+                        stuck_count = 0
                 else:
                     stuck_count = 0
-                if stuck_count >= stuck_patience:
-                    print(f"Warning: possible stuck state in {phase} (error={error:.3f})")
-                    stuck_count = 0
+                last_error = error
+                step_count = (step_count + 1) % total_steps
             else:
-                stuck_count = 0
-            last_error = error
+                # Hold current pose so teleop can take over without scripted motion.
+                action = ts.observation["qpos"].copy()
+                ts = env.step(action)
             #plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
             #plt.pause(0.001)
             viewer.sync()
-            step_count = (step_count + 1) % total_steps
 
 
 if __name__ == "__main__":

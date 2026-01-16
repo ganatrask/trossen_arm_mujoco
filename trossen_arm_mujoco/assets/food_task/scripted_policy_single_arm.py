@@ -15,6 +15,7 @@ Action format: [joint1, joint2, joint3, joint4, joint5, joint6, gripper_left, gr
 
 import argparse
 
+import matplotlib.pyplot as plt
 import mujoco
 from dm_control.mujoco.engine import Physics
 from dm_control.suite import base
@@ -23,7 +24,12 @@ from mujoco import viewer as mj_viewer
 import numpy as np
 
 from trossen_arm_mujoco.constants import START_ARM_POSE
-from trossen_arm_mujoco.utils import get_observation_base, make_sim_env
+from trossen_arm_mujoco.utils import (
+    get_observation_base,
+    make_sim_env,
+    plot_observation_images,
+    set_observation_images,
+)
 
 
 def solve_ik(
@@ -419,6 +425,7 @@ def test_policy(
     episode_len: int = 450,
     onscreen_render: bool = True,
     inject_noise: bool = False,
+    camera_view: bool = False,
 ):
     """
     Tests the single-arm scripted policy in simulation.
@@ -427,28 +434,34 @@ def test_policy(
     :param episode_len: Length of episode in timesteps.
     :param onscreen_render: Whether to show the MuJoCo viewer.
     :param inject_noise: Whether to add noise to actions.
+    :param camera_view: Whether to show camera views in matplotlib window.
     """
-    # Setup environment
-    cam_list = ["cam_high", "cam_front"]
+    # Setup environment based on policy
+    # cam = wrist camera, cam_high = overhead
+    cam_list = ["cam_high", "cam"]
+
+    # Select policy and scene
+    if policy_name == "bowl_to_plate":
+        xml_file = "wxai/food_scene.xml"
+        policy = BowlToPlatePolicy(inject_noise)
+    elif policy_name == "simple_pick":
+        xml_file = "wxai/food_scene.xml"
+        policy = SimplePickPolicy(inject_noise)
+    elif policy_name == "telop":
+        xml_file = "wxai/telop_scene.xml"
+        policy = TelopPolicy(inject_noise)
+    else:
+        raise ValueError(f"Unknown policy: {policy_name}")
+
     env = make_sim_env(
         SingleArmTask,
-        xml_file="wxai/food_scene.xml",
+        xml_file=xml_file,
         task_name="single arm",
         onscreen_render=onscreen_render,
         cam_list=cam_list,
     )
 
     ts = env.reset()
-
-    # Select policy
-    if policy_name == "bowl_to_plate":
-        policy = BowlToPlatePolicy(inject_noise)
-    elif policy_name == "simple_pick":
-        policy = SimplePickPolicy(inject_noise)
-    elif policy_name == "telop":
-        policy = TelopPolicy(inject_noise)
-    else:
-        raise ValueError(f"Unknown policy: {policy_name}")
 
     # Pass physics to policy for IK solving
     policy.set_physics(env.physics)
@@ -457,6 +470,13 @@ def test_policy(
     print(f"Initial qpos: {ts.observation['qpos']}")
 
     if onscreen_render:
+        # Setup camera view window if requested
+        plt_imgs = None
+        if camera_view:
+            plt_imgs = plot_observation_images(ts.observation, cam_list)
+            plt.pause(0.02)
+            plt.show(block=False)
+
         # Use MuJoCo viewer
         with mj_viewer.launch_passive(env.physics.model.ptr, env.physics.data.ptr) as viewer:
             for step in range(episode_len):
@@ -464,6 +484,10 @@ def test_policy(
                     break
                 action = policy(ts)
                 ts = env.step(action)
+                # Update camera views if enabled
+                if camera_view and plt_imgs is not None:
+                    plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
+                    plt.pause(0.001)
                 viewer.sync()
         print("Simulation complete.")
     else:
@@ -503,6 +527,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Inject noise into actions.",
     )
+    parser.add_argument(
+        "--camera_view",
+        action="store_true",
+        help="Show camera views (cam_high, cam_front, cam_wrist) in matplotlib window.",
+    )
 
     args = parser.parse_args()
 
@@ -511,4 +540,5 @@ if __name__ == "__main__":
         episode_len=args.episode_len,
         onscreen_render=not args.no_render,
         inject_noise=args.inject_noise,
+        camera_view=args.camera_view,
     )

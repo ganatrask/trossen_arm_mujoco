@@ -143,6 +143,10 @@ def plot_observation_images(observation: dict, cam_list: list[str]) -> list[Axes
         "cam_teleop": "Teleoperator POV",
         "cam_left_wrist": "Left Wrist Camera",
         "cam_right_wrist": "Right Wrist Camera",
+        "cam_front": "Camera Front",
+        "cam_side": "Camera Side",
+        "cam": "Wrist Camera",
+        "cam_food_service": "Food Service View",
     }
 
     for i, cam in enumerate(cam_list):

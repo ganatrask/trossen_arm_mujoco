@@ -15,7 +15,6 @@ from trossen_arm_mujoco.utils import (
     set_observation_images,
 )
 
-
 class TrossenAISingleArmTask(base.Task):
     """
     A base task for single-arm manipulation with the WXAI follower arm.

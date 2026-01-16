@@ -14,6 +14,7 @@ Action format: [joint1, joint2, joint3, joint4, joint5, joint6, gripper_left, gr
 """
 
 import argparse
+import time
 
 import matplotlib.pyplot as plt
 import mujoco
@@ -316,7 +317,7 @@ class BowlToPlatePolicy(BaseSingleArmPolicy):
             print(f"  t={wp['t']:3d}: joints={wp['qpos'][:6]}")
 
 
-class TelopPolicy(BaseSingleArmPolicy):
+class TeleopPolicy(BaseSingleArmPolicy):
     """
     Policy based on teleoperated trajectory with key waypoints.
     Robot interpolates smoothly between waypoints.
@@ -343,7 +344,7 @@ class TelopPolicy(BaseSingleArmPolicy):
         # t=8s: Scoop position (wrist rotated)
         scoop = np.array([0.0772, 1.7725, 1.7874, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
 
-        # t=12s: Move to plate area
+        # t=12s: Move to ramekin_2 area (front right ramekin at -0.36, -0.26)
         above_plate = np.array([0.4080, 1.1198, 0.8974, -0.3222, -0.6323, -0.5343, GRIPPER_OPEN, GRIPPER_OPEN])
 
         # t=19s: Dump food (wrist rotation)
@@ -362,7 +363,65 @@ class TelopPolicy(BaseSingleArmPolicy):
             {"t": 1100, "qpos": return_pos},   # ~22s
         ]
 
-        print("Generated telop trajectory with key waypoints:")
+        print("Generated teleop trajectory (ramekin_2) with key waypoints:")
+        for wp in self.trajectory:
+            print(f"  t={wp['t']:4d}: joints={np.round(wp['qpos'][:6], 3)}")
+
+
+class TeleopPolicy2(BaseSingleArmPolicy):
+    """
+    Policy based on teleoperated trajectory targeting ramekin_3 (back left).
+    Robot interpolates smoothly between waypoints.
+    """
+
+    def generate_trajectory(self, ts_first: TimeStep, physics: Physics = None):
+        """
+        Generates trajectory from key waypoints targeting ramekin_3.
+
+        :param ts_first: The first observation of the episode.
+        :param physics: Physics instance (unused, for API compatibility).
+        """
+        GRIPPER_OPEN = 0.044
+
+        # Key waypoints extracted from teleoperation recording
+        # Each is [j1, j2, j3, j4, j5, j6, gripper_l, gripper_r]
+
+        # t=0s: Start/home position
+        home = np.array([0.0849, 0.0036, 0.0059, 0.0334, -0.0292, -0.0681, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=3s: Reach into bowl (arm extended)
+        reach_bowl = np.array([0.5037, 1.8320, 1.8053, -0.7662, 0.2317, -0.8711, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=8s: Scoop position (wrist rotated)
+        scoop = np.array([0.0772, 1.7725, 1.7874, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=10s: Lift position - raise arm to clear container before moving to ramekin_3
+        # Lower joint_1 and joint_2 to lift the arm higher
+        lift = np.array([0.0772, 1.2, 1.2, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=14s: Move to ramekin_3 area (back left ramekin at -0.36, -0.12)
+        # Tuned using pose_tuner.py
+        above_plate = np.array([0.1937, 1.1011, 0.9224, -0.9347, -0.5698, -0.5343, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=21s: Dump food (wrist rotation) - adjusted joint_0 similarly
+        dump = np.array([0.32, 1.1870, 0.8703, -0.1677, -0.5152, -1.8313, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # t=20s: Return position
+        return_pos = np.array([0.2672, 1.1156, 1.1976, -0.3962, -0.3302, -0.1829, GRIPPER_OPEN, GRIPPER_OPEN])
+
+        # Build trajectory (50 steps per second, total 22s = 1100 steps)
+        self.trajectory = [
+            {"t": 0,    "qpos": home},
+            {"t": 150,  "qpos": reach_bowl},   # ~3s
+            {"t": 350,  "qpos": scoop},        # ~7s
+            {"t": 450,  "qpos": lift},         # ~9s - lift to clear container
+            {"t": 600,  "qpos": above_plate},  # ~12s
+            {"t": 850,  "qpos": dump},         # ~17s
+            {"t": 1000, "qpos": return_pos},   # ~20s
+            {"t": 1100, "qpos": return_pos},   # ~22s - hold at end
+        ]
+
+        print("Generated teleop_2 trajectory (ramekin_3) with key waypoints:")
         for wp in self.trajectory:
             print(f"  t={wp['t']:4d}: joints={np.round(wp['qpos'][:6], 3)}")
 
@@ -447,9 +506,12 @@ def test_policy(
     elif policy_name == "simple_pick":
         xml_file = "wxai/food_scene.xml"
         policy = SimplePickPolicy(inject_noise)
-    elif policy_name == "telop":
+    elif policy_name == "teleop":
         xml_file = "wxai/telop_scene.xml"
-        policy = TelopPolicy(inject_noise)
+        policy = TeleopPolicy(inject_noise)
+    elif policy_name == "teleop_2":
+        xml_file = "wxai/telop_scene.xml"
+        policy = TeleopPolicy2(inject_noise)
     else:
         raise ValueError(f"Unknown policy: {policy_name}")
 
@@ -478,8 +540,11 @@ def test_policy(
             plt.show(block=False)
 
         # Use MuJoCo viewer
+        # Real-time factor: 50 steps per second = 0.02s per step
+        step_duration = 0.02
         with mj_viewer.launch_passive(env.physics.model.ptr, env.physics.data.ptr) as viewer:
             for step in range(episode_len):
+                step_start = time.time()
                 if not viewer.is_running():
                     break
                 action = policy(ts)
@@ -489,6 +554,10 @@ def test_policy(
                     plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
                     plt.pause(0.001)
                 viewer.sync()
+                # Sleep to maintain real-time playback
+                elapsed = time.time() - step_start
+                if elapsed < step_duration:
+                    time.sleep(step_duration - elapsed)
         print("Simulation complete.")
     else:
         # Run without viewer
@@ -508,7 +577,7 @@ if __name__ == "__main__":
         "--policy",
         type=str,
         default="bowl_to_plate",
-        choices=["bowl_to_plate", "simple_pick", "telop"],
+        choices=["bowl_to_plate", "simple_pick", "teleop", "teleop_2"],
         help="Policy to run.",
     )
     parser.add_argument(

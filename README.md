@@ -209,6 +209,78 @@ Arguments:
 - `--left_ip` : IP address of the left Trossen arm. Default: 192.168.1.5
 - `--right_ip`: 	IP address of the right Trossen arm. Default: 192.168.1.4
 
+## 5. Single-Arm Food Task
+
+The package includes a single-arm manipulation task for food scooping and transfer operations using the WXAI robot arm with a spoon attachment.
+
+### 5.1 Scene Files
+
+- `assets/wxai/telop_scene.xml` - Teleop scene with container, bowl, and 4 ramekins arranged in a 2x2 grid
+- `assets/food_task/telop_follower_spoon.xml` - Single arm robot model with spoon end-effector
+
+### 5.2 Running Single-Arm Policies
+
+The single-arm scripted policies demonstrate food scooping from a bowl and transferring to ramekins.
+
+**Available policies:**
+- `teleop` - Targets ramekin_2 (front right)
+- `teleop_2` - Targets ramekin_3 (back left)
+- `bowl_to_plate` - Basic bowl-to-plate transfer using IK
+- `simple_pick` - Simple pick demonstration
+
+Run a policy with real-time visualization (22 seconds):
+
+```bash
+python -m trossen_arm_mujoco.assets.food_task.scripted_policy_single_arm \
+    --policy teleop_2 \
+    --episode_len 1100
+```
+
+Arguments:
+- `--policy`: Policy to run (`bowl_to_plate`, `simple_pick`, `teleop`, `teleop_2`)
+- `--episode_len`: Episode length in timesteps (50 Hz, so 1100 = 22 seconds)
+- `--no_render`: Disable visualization
+- `--inject_noise`: Add noise to actions for robustness testing
+- `--camera_view`: Show camera views in matplotlib window
+
+### 5.3 Pose Tuner Tool
+
+An interactive tool for adjusting robot waypoints in real-time using keyboard controls.
+
+```bash
+python -m trossen_arm_mujoco.assets.food_task.pose_tuner --pose above_plate_teleop2
+```
+
+**Keyboard Controls (in terminal):**
+- `0-5`: Select joint to adjust (0=base, 1=shoulder, 2=elbow, 3-5=wrist)
+- `+` or `=`: Increase selected joint value
+- `-` or `_`: Decrease selected joint value
+- `[` / `]`: Decrease/increase step size
+- `p`: Print current pose in copy-paste format
+- `r`: Reset to initial pose
+- `q`: Quit and print final pose
+
+**Available poses to tune:**
+- `above_plate_teleop2` - Position above ramekin_3
+- `dump_teleop2` - Dump position for ramekin_3
+- `above_plate_teleop` - Position above ramekin_2
+- `dump_teleop` - Dump position for ramekin_2
+
+### 5.4 Trajectory Waypoints
+
+The teleop policies use waypoint-based trajectories with linear interpolation between poses. Each waypoint consists of:
+- 6 arm joint angles (radians)
+- 2 gripper values (0.044 = open, 0.012 = closed)
+
+Example trajectory sequence for `teleop_2`:
+1. `home` (0s) - Starting position
+2. `reach_bowl` (3s) - Extend arm into bowl
+3. `scoop` (7s) - Scoop position with wrist rotation
+4. `lift` (9s) - Lift arm to clear container
+5. `above_plate` (12s) - Position above target ramekin
+6. `dump` (17s) - Dump food with wrist rotation
+7. `return_pos` (20s) - Return to neutral position
+
 ## Customization
 
 ### 1. Modifying Tasks

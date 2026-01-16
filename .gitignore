@@ -8,3 +8,5 @@ output_csvs/
 data/
 .mypy_cache/
 .ruff_cache
+**/dual_arm_recording*/
+*.mkv

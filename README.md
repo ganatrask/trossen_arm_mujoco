@@ -243,7 +243,7 @@ Arguments:
 - `--inject_noise`: Add noise to actions for robustness testing
 - `--camera_view`: Show camera views in matplotlib window
 
-**Replay Recorded Teleop Data:**
+#### 5.2.1 Replay Recorded Teleop Data
 
 You can also replay recorded teleoperation data in simulation:
 

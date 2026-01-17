@@ -243,6 +243,22 @@ Arguments:
 - `--inject_noise`: Add noise to actions for robustness testing
 - `--camera_view`: Show camera views in matplotlib window
 
+**Replay Recorded Teleop Data:**
+
+You can also replay recorded teleoperation data in simulation:
+
+```bash
+python -m trossen_arm_mujoco.scripts.replay_episode_telop \
+    --data_dir trossen_arm_mujoco/dual_arm_recording_20260114_114621 \
+    --arm right \
+    --role follower
+```
+
+Arguments:
+- `--data_dir`: Directory containing recorded `.hdf5` files
+- `--arm`: Which arm to replay (`left` or `right`)
+- `--role`: Role of the arm (`leader` or `follower`)
+
 ### 5.3 Pose Tuner Tool
 
 An interactive tool for adjusting robot waypoints in real-time using keyboard controls.

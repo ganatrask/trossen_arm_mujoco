@@ -179,6 +179,151 @@ class SingleArmTask(TrossenAISingleArmTask):
         return 0
 
 
+class FoodTransferTask(TrossenAISingleArmTask):
+    """
+    Food transfer task with distance-based rewards for scooping from container
+    and transferring to a target ramekin.
+
+    Reward stages:
+        0: No reach (initial state)
+        1: Reached container/bowl (spoon within threshold)
+        2: Reached any ramekin and stayed for dwell_time seconds
+
+    :param reach_threshold: Distance threshold for "reached" (default 0.06m = 6cm).
+    :param dwell_time: Time in seconds spoon must stay near ramekin (default 2.0s).
+    :param random: Random seed for environment variability.
+    :param onscreen_render: Whether to enable real-time rendering.
+    :param cam_list: List of cameras to capture observations.
+    """
+
+    # Target positions (from telop_scene.xml)
+    CONTAINER_POS = np.array([-0.63, -0.15, 0.04])
+    RAMEKIN_POSITIONS = {
+        "ramekin_1": np.array([-0.22, -0.26, 0.04]),
+        "ramekin_2": np.array([-0.36, -0.26, 0.04]),  # TeleopPolicy target
+        "ramekin_3": np.array([-0.36, -0.12, 0.04]),  # TeleopPolicy2 target
+        "ramekin_4": np.array([-0.22, -0.12, 0.04]),
+    }
+
+    def __init__(
+        self,
+        reach_threshold: float = 0.06,
+        dwell_time: float = 2.0,
+        random: int | None = None,
+        onscreen_render: bool = False,
+        cam_list: list[str] = [],
+    ):
+        super().__init__(
+            random=random,
+            onscreen_render=onscreen_render,
+            cam_list=cam_list,
+        )
+        self.reach_threshold = reach_threshold
+        self.dwell_time = dwell_time
+        self.max_reward = 2
+
+        # Tracking state for dwell time
+        self._container_enter_step = None
+        self._reached_container = False
+        self._ramekin_enter_step = {name: None for name in self.RAMEKIN_POSITIONS.keys()}
+        self._reached_ramekin = False
+        self._step_count = 0
+        self._steps_per_second = 50  # Simulation runs at 50Hz
+
+    def initialize_episode(self, physics: Physics) -> None:
+        """
+        Initializes the episode, resetting the robot's pose and tracking state.
+
+        :param physics: The MuJoCo physics simulation instance.
+        """
+        with physics.reset_context():
+            physics.named.data.qpos[:8] = START_ARM_POSE[:8]
+
+        # Reset tracking state
+        self._container_enter_step = None
+        self._reached_container = False
+        self._ramekin_enter_step = {name: None for name in self.RAMEKIN_POSITIONS.keys()}
+        self._reached_ramekin = False
+        self._step_count = 0
+
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_env_state(physics: Physics) -> np.ndarray:
+        """
+        Retrieves the environment state.
+
+        :param physics: The MuJoCo physics simulation instance.
+        :return: The environment state.
+        """
+        env_state = physics.data.qpos.copy()
+        return env_state
+
+    def _get_spoon_position(self, physics: Physics) -> np.ndarray:
+        """Get the current XYZ position of the spoon body."""
+        spoon_id = physics.model.name2id("spoon", "body")
+        return physics.data.xpos[spoon_id].copy()
+
+    def get_reward(self, physics: Physics) -> int:
+        """
+        Computes the reward based on task progress.
+
+        Reward stages:
+            0: No reach (initial state)
+            1: Reached container/bowl (spoon within threshold)
+            2: Reached any ramekin and stayed for dwell_time seconds
+
+        :param physics: The MuJoCo physics simulation instance.
+        :return: The computed reward (0, 1, or 2).
+        """
+        self._step_count += 1
+        spoon_pos = self._get_spoon_position(physics)
+        dwell_steps = int(self.dwell_time * self._steps_per_second)
+
+        # Get actual positions from simulation
+        container_pos = physics.named.data.xpos["container"]
+
+        # Check container reach with dwell time (XY distance)
+        container_dist = np.linalg.norm(spoon_pos[:2] - container_pos[:2])
+        if container_dist < self.reach_threshold:
+            # Inside threshold zone
+            if self._container_enter_step is None:
+                self._container_enter_step = self._step_count
+            # Check if we've dwelled long enough
+            steps_in_zone = self._step_count - self._container_enter_step
+            if steps_in_zone >= dwell_steps:
+                self._reached_container = True
+        else:
+            # Left threshold zone, reset dwell timer
+            self._container_enter_step = None
+
+        # Check ramekin reach with dwell time
+
+        for ramekin_name in self.RAMEKIN_POSITIONS.keys():
+            ramekin_pos = physics.named.data.xpos[ramekin_name]
+            ramekin_dist = np.linalg.norm(spoon_pos[:2] - ramekin_pos[:2])
+
+            if ramekin_dist < self.reach_threshold:
+                # Inside threshold zone
+                if self._ramekin_enter_step[ramekin_name] is None:
+                    self._ramekin_enter_step[ramekin_name] = self._step_count
+                # Check if we've dwelled long enough
+                steps_in_zone = self._step_count - self._ramekin_enter_step[ramekin_name]
+                if steps_in_zone >= dwell_steps:
+                    self._reached_ramekin = True
+            else:
+                # Left threshold zone, reset dwell timer
+                self._ramekin_enter_step[ramekin_name] = None
+
+        # Compute reward
+        if self._reached_ramekin:
+            return 2
+        elif self._reached_container:
+            return 1
+        else:
+            return 0
+
+
 def test_sim_teleop():
     """
     Runs a simulation to test teleoperation with the WXAI base arm.

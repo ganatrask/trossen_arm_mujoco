@@ -31,6 +31,7 @@ from trossen_arm_mujoco.utils import (
     plot_observation_images,
     set_observation_images,
 )
+from trossen_arm_mujoco.assets.food_task.single_arm_env import FoodTransferTask
 
 
 def solve_ik(
@@ -225,7 +226,7 @@ class BaseSingleArmPolicy:
             self.generate_trajectory(ts, self.physics)
 
         # Get current and next waypoints
-        if self.trajectory[0]["t"] == self.step_count:
+        if len(self.trajectory) > 0 and self.trajectory[0]["t"] == self.step_count:
             self.curr_waypoint = self.trajectory.pop(0)
 
         # If we're at the last waypoint, stay there
@@ -485,6 +486,7 @@ def test_policy(
     onscreen_render: bool = True,
     inject_noise: bool = False,
     camera_view: bool = False,
+    use_rewards: bool = False,
 ):
     """
     Tests the single-arm scripted policy in simulation.
@@ -494,6 +496,7 @@ def test_policy(
     :param onscreen_render: Whether to show the MuJoCo viewer.
     :param inject_noise: Whether to add noise to actions.
     :param camera_view: Whether to show camera views in matplotlib window.
+    :param use_rewards: Whether to use FoodTransferTask with rewards (for teleop/teleop_2).
     """
     # Setup environment based on policy
     # cam = wrist camera, cam_high = overhead
@@ -503,20 +506,24 @@ def test_policy(
     if policy_name == "bowl_to_plate":
         xml_file = "wxai/food_scene.xml"
         policy = BowlToPlatePolicy(inject_noise)
+        task_cls = SingleArmTask
     elif policy_name == "simple_pick":
         xml_file = "wxai/food_scene.xml"
         policy = SimplePickPolicy(inject_noise)
+        task_cls = SingleArmTask
     elif policy_name == "teleop":
         xml_file = "wxai/telop_scene.xml"
         policy = TeleopPolicy(inject_noise)
+        task_cls = FoodTransferTask if use_rewards else SingleArmTask
     elif policy_name == "teleop_2":
         xml_file = "wxai/telop_scene.xml"
         policy = TeleopPolicy2(inject_noise)
+        task_cls = FoodTransferTask if use_rewards else SingleArmTask
     else:
         raise ValueError(f"Unknown policy: {policy_name}")
 
     env = make_sim_env(
-        SingleArmTask,
+        task_cls,
         xml_file=xml_file,
         task_name="single arm",
         onscreen_render=onscreen_render,
@@ -530,6 +537,15 @@ def test_policy(
 
     print(f"Running {policy_name} policy for {episode_len} steps...")
     print(f"Initial qpos: {ts.observation['qpos']}")
+    if use_rewards:
+        print(f"Rewards enabled: max_reward={env.task.max_reward}")
+        print("  0 = No reach")
+        print("  1 = Reached container (stayed 2s)")
+        print("  2 = Reached ramekin (stayed 2s)")
+
+    # Reward tracking
+    episode_rewards = []
+    last_reward = 0
 
     if onscreen_render:
         # Setup camera view window if requested
@@ -549,6 +565,15 @@ def test_policy(
                     break
                 action = policy(ts)
                 ts = env.step(action)
+
+                # Track rewards
+                if use_rewards:
+                    reward = ts.reward if ts.reward is not None else 0
+                    episode_rewards.append(reward)
+                    if reward != last_reward:
+                        print(f"[Step {step}] Reward changed: {last_reward} -> {reward}")
+                        last_reward = reward
+
                 # Update camera views if enabled
                 if camera_view and plt_imgs is not None:
                     plt_imgs = set_observation_images(ts.observation, plt_imgs, cam_list)
@@ -558,14 +583,51 @@ def test_policy(
                 elapsed = time.time() - step_start
                 if elapsed < step_duration:
                     time.sleep(step_duration - elapsed)
+
+        # Print reward summary
+        if use_rewards:
+            print("\n" + "=" * 40)
+            print("REWARD SUMMARY")
+            print("=" * 40)
+            max_reward = max(episode_rewards) if episode_rewards else 0
+            print(f"Max reward achieved: {max_reward}")
+            if max_reward == env.task.max_reward:
+                print("SUCCESS! Task completed.")
+            else:
+                print("FAILED. Task not completed.")
+            print("=" * 40)
+
         print("Simulation complete.")
     else:
         # Run without viewer
         for step in range(episode_len):
             action = policy(ts)
             ts = env.step(action)
+
+            # Track rewards
+            if use_rewards:
+                reward = ts.reward if ts.reward is not None else 0
+                episode_rewards.append(reward)
+                if reward != last_reward:
+                    print(f"[Step {step}] Reward changed: {last_reward} -> {reward}")
+                    last_reward = reward
+
             if step % 100 == 0:
                 print(f"Step {step}: qpos = {ts.observation['qpos'][:6]}")
+
+        # Print reward summary
+        if use_rewards:
+            print("\n" + "=" * 40)
+            print("REWARD SUMMARY")
+            print("=" * 40)
+            max_reward = max(episode_rewards) if episode_rewards else 0
+            print(f"Max reward achieved: {max_reward}")
+            if max_reward == env.task.max_reward:
+                print("SUCCESS! Task completed.")
+            else:
+                print("FAILED. Task not completed.")
+            print("=" * 40)
+
         print("Simulation complete.")
 
 
@@ -601,6 +663,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Show camera views (cam_high, cam_front, cam_wrist) in matplotlib window.",
     )
+    parser.add_argument(
+        "--use_rewards",
+        action="store_true",
+        help="Enable FoodTransferTask with rewards (for teleop/teleop_2 policies).",
+    )
 
     args = parser.parse_args()
 
@@ -610,4 +677,5 @@ if __name__ == "__main__":
         onscreen_render=not args.no_render,
         inject_noise=args.inject_noise,
         camera_view=args.camera_view,
+        use_rewards=args.use_rewards,
     )

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from mujoco import viewer as mj_viewer
 
-from trossen_arm_mujoco.assets.food_task.single_arm_env import SingleArmTask
+from trossen_arm_mujoco.assets.food_task.single_arm_env import FoodTransferTask
 from trossen_arm_mujoco.utils import make_sim_env
 
 # Evaluation target positions (from telop_scene.xml)
@@ -46,7 +46,7 @@ def replay_episode_sim(
     role: str = "follower",
     speed: float = 1.0,
     cam_list: list[str] = None,
-):
+) -> dict:
     """
     Replay recorded joint positions in MuJoCo simulation with real-time playback.
 
@@ -55,6 +55,7 @@ def replay_episode_sim(
     :param role: Which role to replay ('leader' or 'follower').
     :param speed: Playback speed multiplier (1.0 = real-time, 2.0 = 2x speed).
     :param cam_list: List of cameras for observation.
+    :return: Dictionary with episode results including max_reward and success status.
     """
     if cam_list is None:
         cam_list = ["cam_high", "cam"]
@@ -64,7 +65,7 @@ def replay_episode_sim(
     csv_files = list(Path(arm_data_dir).glob(f"{arm}_{role}_*.csv"))
     if not csv_files:
         print(f"No CSV file found for {arm}_{role} in {arm_data_dir}")
-        return
+        return {"max_reward": 0, "success": False, "error": "CSV not found"}
     csv_path = str(csv_files[0])
     print(f"Loading data from: {csv_path}")
 
@@ -74,11 +75,11 @@ def replay_episode_sim(
     print(f"Loaded {len(positions)} timesteps")
     print(f"Recording duration: {duration:.2f} seconds")
 
-    # Setup simulation environment
+    # Setup simulation environment with FoodTransferTask for reward tracking
     env = make_sim_env(
-        SingleArmTask,
+        FoodTransferTask,
         xml_file="wxai/telop_scene.xml",
-        task_name="single_arm",
+        task_name="food_transfer",
         onscreen_render=True,
         cam_list=cam_list,
     )
@@ -121,6 +122,10 @@ def replay_episode_sim(
 
     print(f"\nWill log end effector pose at t = {log_at_seconds} seconds\n")
 
+    # Reward tracking
+    episode_rewards = []
+    max_reward_possible = env.task.max_reward  # Should be 2 for FoodTransferTask
+
     with mj_viewer.launch_passive(env.physics.model.ptr, env.physics.data.ptr) as viewer:
         while viewer.is_running():
             # Calculate elapsed time adjusted for playback speed
@@ -141,7 +146,10 @@ def replay_episode_sim(
                 action[6] = joint_pos[6]     # gripper joint 1
                 action[7] = joint_pos[6]     # gripper joint 2 (same as joint 1)
 
-                env.step(action)
+                ts = env.step(action)
+                # ts.reward can be None in some cases, default to 0
+                reward = ts.reward if ts.reward is not None else 0
+                episode_rewards.append(reward)
 
                 # Evaluation: check if spoon reached container or ramekins
                 ee_pos = env.physics.named.data.xpos[ee_body_name]
@@ -196,11 +204,17 @@ def replay_episode_sim(
                         logged_times.add(t)
 
             else:
-                # Replay finished, print evaluation summary
+                # Replay finished, compute final results
+                max_reward = max(episode_rewards) if episode_rewards else 0
+                success = max_reward == max_reward_possible
+
+                # Print evaluation summary
                 print(f"\nReplay complete! Total time: {duration:.2f}s")
                 print("\n" + "=" * 40)
                 print("EVALUATION RESULTS")
                 print("=" * 40)
+                print(f"Max Reward: {max_reward}/{max_reward_possible} {'✓ SUCCESS' if success else '✗ FAILED'}")
+
                 if eval_results["reached_container"]:
                     print(f"Container: REACHED at t={eval_results['container_reach_time']:.2f}s")
                 else:
@@ -219,23 +233,115 @@ def replay_episode_sim(
                     status = "REACHED" if name in eval_results["reached_ramekins"] else "missed"
                     print(f"  {name}: {dist:.3f}m ({status})")
                 print("=" * 40)
-                break
+
+                return {
+                    "max_reward": max_reward,
+                    "success": success,
+                    "reached_container": eval_results["reached_container"],
+                    "reached_ramekins": list(eval_results["reached_ramekins"]),
+                }
 
             viewer.sync()
 
+    # Fallback return if viewer closed early
+    max_reward = max(episode_rewards) if episode_rewards else 0
+    return {
+        "max_reward": max_reward,
+        "success": max_reward == max_reward_possible,
+        "reached_container": eval_results["reached_container"],
+        "reached_ramekins": list(eval_results["reached_ramekins"]),
+    }
+
 
 def main(args):
-    data_dir = args.data_dir
-    if not Path(data_dir).exists():
-        print(f"Data directory not found: {data_dir}")
-        return
+    # Collect all episode directories
+    if args.data_root:
+        # Find all episode directories in the root
+        root_path = Path(args.data_root)
+        if not root_path.exists():
+            print(f"Data root not found: {args.data_root}")
+            return
+        episode_dirs = sorted([
+            d for d in root_path.iterdir()
+            if d.is_dir() and d.name.startswith("dual_arm_recording")
+        ])
+        if not episode_dirs:
+            print(f"No episode directories found in {args.data_root}")
+            return
+        # Limit to num_episodes if specified
+        if args.num_episodes is not None:
+            episode_dirs = episode_dirs[:args.num_episodes]
+        print(f"Found {len(episode_dirs)} episodes to replay")
+    else:
+        # Single episode mode
+        data_dir = Path(args.data_dir)
+        if not data_dir.exists():
+            print(f"Data directory not found: {args.data_dir}")
+            return
+        episode_dirs = [data_dir]
 
-    replay_episode_sim(
-        data_dir=data_dir,
-        arm=args.arm,
-        role=args.role,
-        speed=args.speed,
-    )
+    # Track results for all episodes
+    all_results = []
+    total_episodes = len(episode_dirs)
+
+    # Replay each episode
+    for i, episode_dir in enumerate(episode_dirs):
+        print(f"\n{'='*60}")
+        print(f"EPISODE {i+1}/{total_episodes}: {episode_dir.name}")
+        print(f"{'='*60}\n")
+
+        result = replay_episode_sim(
+            data_dir=str(episode_dir),
+            arm=args.arm,
+            role=args.role,
+            speed=args.speed,
+        )
+        result["episode_name"] = episode_dir.name
+        result["episode_idx"] = i + 1
+        all_results.append(result)
+
+        if i < total_episodes - 1:
+            print(f"\nStarting next episode in 2 seconds...")
+            time.sleep(2)
+
+    # Print final summary
+    print("\n")
+    print("=" * 70)
+    print("FINAL SUMMARY")
+    print("=" * 70)
+
+    successful = [r for r in all_results if r.get("success", False)]
+
+    print(f"Replayed: {len(all_results)}/{total_episodes} episodes")
+    print(f"Success:  {len(successful)}/{len(all_results)} ({100*len(successful)/len(all_results):.1f}%)")
+    print()
+
+    # List episodes with their rewards
+    print("Episode Results:")
+    print("-" * 70)
+    for r in all_results:
+        status = "SUCCESS" if r.get("success") else "FAILED"
+        reward = r.get("max_reward", 0)
+        container = "container" if r.get("reached_container") else ""
+        ramekins = ", ".join(r.get("reached_ramekins", []))
+        reached = ", ".join(filter(None, [container, ramekins])) or "none"
+        print(f"  {r['episode_idx']:2d}. {r['episode_name']}: reward={reward} [{status}] (reached: {reached})")
+
+    print("-" * 70)
+
+    # Summary by reward level
+    reward_counts = {}
+    for r in all_results:
+        reward = r.get("max_reward", 0)
+        reward_counts[reward] = reward_counts.get(reward, 0) + 1
+
+    print("\nReward Distribution:")
+    for reward in sorted(reward_counts.keys()):
+        count = reward_counts[reward]
+        label = {0: "No reach", 1: "Container only", 2: "Full success"}.get(reward, f"Reward {reward}")
+        print(f"  Reward {reward} ({label}): {count} episodes")
+
+    print("=" * 70)
 
 
 if __name__ == "__main__":
@@ -245,8 +351,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_dir",
         type=str,
-        required=True,
-        help="Directory containing arm_data folder with CSV files.",
+        default=None,
+        help="Directory containing arm_data folder with CSV files (single episode).",
+    )
+    parser.add_argument(
+        "--data_root",
+        type=str,
+        default=None,
+        help="Root directory containing multiple episode folders. Replays all episodes.",
+    )
+    parser.add_argument(
+        "--num_episodes",
+        type=int,
+        default=None,
+        help="Number of episodes to replay (default: all). Only used with --data_root.",
     )
     parser.add_argument(
         "--arm",
@@ -270,4 +388,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    if not args.data_dir and not args.data_root:
+        parser.error("Either --data_dir or --data_root must be provided")
+
     main(args)

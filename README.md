@@ -245,19 +245,82 @@ Arguments:
 
 #### 5.2.1 Replay Recorded Teleop Data
 
-You can also replay recorded teleoperation data in simulation:
+You can replay recorded teleoperation data in simulation:
 
 ```bash
+# Replay a single episode
 python -m trossen_arm_mujoco.scripts.replay_episode_telop \
-    --data_dir trossen_arm_mujoco/dual_arm_recording_20260114_114621 \
+    --data_dir /path/to/dual_arm_recording_XXXXX \
+    --arm right \
+    --role follower
+
+# Replay multiple episodes from a root directory
+python -m trossen_arm_mujoco.scripts.replay_episode_telop \
+    --data_root /home/shyam/projects/cc/data_from_raven \
+    --num_episodes 4 \
     --arm right \
     --role follower
 ```
 
 Arguments:
-- `--data_dir`: Directory containing recorded `.hdf5` files
-- `--arm`: Which arm to replay (`left` or `right`)
-- `--role`: Role of the arm (`leader` or `follower`)
+- `--data_dir`: Single episode directory containing `arm_data` folder with CSV files
+- `--data_root`: Root directory containing multiple `dual_arm_recording_*` episode folders
+- `--num_episodes`: Number of episodes to replay (default: all)
+- `--arm`: Which arm to replay (`left` or `right`, default: `right`)
+- `--role`: Role of the arm (`leader` or `follower`, default: `follower`)
+- `--speed`: Playback speed multiplier (default: 1.0)
+
+#### 5.2.2 Convert Teleop CSV to HDF5 Dataset
+
+Convert real teleoperation CSV recordings to HDF5 datasets by replaying them in simulation. This captures simulated camera images and joint states for training.
+
+```bash
+python -m trossen_arm_mujoco.scripts.convert_teleop_to_hdf5 \
+    --data_root /home/shyam/projects/cc/data_from_raven \
+    --output_dir teleop_hdf5_dataset
+```
+
+Arguments:
+- `--data_root`: Root directory containing multiple `dual_arm_recording_*` episode folders
+- `--data_dir`: Single episode directory (alternative to `--data_root`)
+- `--output_dir`: Directory to save HDF5 files
+- `--num_episodes`: Number of episodes to convert (default: all)
+- `--arm`: Which arm to use (`left` or `right`, default: `right`)
+- `--role`: Which role to use (`leader` or `follower`, default: `follower`)
+- `--realtime`: Replay at original timing (slower, useful for verification)
+
+HDF5 output structure:
+```
+episode_X.hdf5
+├── observations/
+│   ├── images/
+│   │   ├── cam_high  (timesteps, 480, 640, 3) uint8
+│   │   └── cam       (timesteps, 480, 640, 3) uint8
+│   ├── qpos          (timesteps, 8) float64
+│   └── qvel          (timesteps, 8) float64
+├── action            (timesteps, 8) float64
+└── attrs: sim=True, source="teleop_replay", original_episode=<name>
+```
+
+#### 5.2.3 Visualize HDF5 Episodes as Videos
+
+Convert HDF5 episode files to MP4 videos for verification:
+
+```bash
+python -m trossen_arm_mujoco.scripts.visualize_eps \
+    --data_dir teleop_hdf5_dataset \
+    --root_dir . \
+    --output_dir videos \
+    --fps 200
+```
+
+Arguments:
+- `--data_dir`: Directory containing HDF5 episode files
+- `--root_dir`: Root directory (use `.` for current directory)
+- `--output_dir`: Subdirectory for output videos (default: `videos`)
+- `--fps`: Frames per second for video (use ~200 to match original teleop recording rate)
+
+Videos are saved to `<data_dir>/<output_dir>/episode_X.mp4`.
 
 ### 5.3 Pose Tuner Tool
 

@@ -250,7 +250,7 @@ You can replay recorded teleoperation data in simulation:
 ```bash
 # Replay a single episode
 python -m trossen_arm_mujoco.scripts.replay_episode_telop \
-    --data_dir /path/to/dual_arm_recording_XXXXX \
+    --data_dir /home/shyam/projects/cc/dataset/data_from_raven/dual_arm_recording_20260113_131443  \
     --arm right \
     --role follower
 

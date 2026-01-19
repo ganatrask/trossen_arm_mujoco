@@ -97,7 +97,7 @@
                     <geom class="collision" type="box" size="0.0275 0.005 0.01" pos="0.0285 -0.01429 -0.00973" quat="0.98344 -0.0133 -0.16893 -0.06427"/>
                     <geom class="collision" type="box" size="0.00732 0.00214 0.00767" pos="0.0622 -0.02083 -0.00105" quat="1 0 0 0"/>
                   </body>
-                  <body name="spoon" pos="0.3 0 0.02" quat="-0.7071 0 0.7071 0">
+                  <body name="spoon" pos="0.3 0 -0.02" quat="-0.7071 0 0.7071 0">
                     <inertial pos="0 0 -0.05" mass="0.05" diaginertia="0.0001 0.0001 0.0001"/>
                     <geom type="mesh" mesh="table_spoon" material="spoon_metal" group="2" contype="0" conaffinity="0"/>
                     <geom type="mesh" mesh="table_spoon" rgba="0.8 0.8 0.85 0.5" contype="1" conaffinity="1" group="3"/>

@@ -295,8 +295,8 @@ class FoodTransferIK:
 
 
 def run_food_transfer(
-    target_ramekin: str = "ramekin_2",
-    num_loops: int = 1,
+    target_ramekin: str = "all",
+    num_loops: int = -1,
     speed: float = 1.0,
     debug_hold: float = 3.0,
 ):
@@ -304,21 +304,30 @@ def run_food_transfer(
     Run the food transfer task with dynamic IK.
 
     Args:
-        target_ramekin: Target ramekin name
-        num_loops: Number of transfer cycles
+        target_ramekin: Target ramekin name, or "all" to cycle through all 4
+        num_loops: Number of transfer cycles (-1 = infinite until viewer closed)
         speed: Speed multiplier (1.0 = normal)
         debug_hold: Hold time after each phase for debugging (seconds)
     """
+    # List of all ramekins for cycling
+    all_ramekins = ["ramekin_1", "ramekin_2", "ramekin_3", "ramekin_4"]
+    cycle_all = (target_ramekin == "all")
+
     print("=" * 60)
     print("Dynamic Food Transfer Task with Mink IK")
     print("=" * 60)
-    print(f"Target: {target_ramekin}")
-    print(f"Loops: {num_loops}")
+    if cycle_all:
+        print(f"Target: ALL bowls (cycling through 1-4)")
+    else:
+        print(f"Target: {target_ramekin}")
+    print(f"Loops: {'infinite' if num_loops < 0 else num_loops}")
     print(f"Speed: {speed}x")
     print(f"Debug hold: {debug_hold}s after each phase")
     print()
 
-    task = FoodTransferIK(target_ramekin=target_ramekin)
+    # Initialize task with first ramekin (will be updated in loop if cycling)
+    initial_target = all_ramekins[0] if cycle_all else target_ramekin
+    task = FoodTransferIK(target_ramekin=initial_target)
     task.config.debug_hold = debug_hold
 
     # Get spoon body ID for debug output
@@ -335,15 +344,25 @@ def run_food_transfer(
     time_scale = 1.0 / speed
 
     print("Starting simulation...")
-    print("Close viewer to exit.")
+    print("Close viewer to exit (Ctrl+C or close window).")
     print("-" * 60)
 
     with mj_viewer.launch_passive(task.model, task.data) as viewer:
-        for loop in range(num_loops):
-            if not viewer.is_running():
+        loop = 0
+        ramekin_idx = 0  # Index for cycling through ramekins
+
+        while viewer.is_running():
+            # Check if we've done enough loops (if not infinite)
+            if num_loops >= 0 and loop >= num_loops:
                 break
 
-            print(f"\n=== Loop {loop + 1}/{num_loops} ===")
+            # Determine current target ramekin
+            if cycle_all:
+                current_target = all_ramekins[ramekin_idx]
+                task.target_ramekin = current_target
+                print(f"\n=== Loop {loop + 1} | Bowl: {current_target} (bowl_{ramekin_idx + 1}) ===")
+            else:
+                print(f"\n=== Loop {loop + 1}{'/' + str(num_loops) if num_loops >= 0 else ''} ===")
 
             # Reset to home
             task.phase = TaskPhase.HOME
@@ -453,8 +472,15 @@ def run_food_transfer(
             if task.phase == TaskPhase.DONE:
                 print("Transfer complete!")
 
-        # Hold at end
-        if viewer.is_running():
+                # Increment loop counter
+                loop += 1
+
+                # Cycle to next ramekin if in "all" mode
+                if cycle_all:
+                    ramekin_idx = (ramekin_idx + 1) % len(all_ramekins)
+
+        # Hold at end (only if finite loops completed)
+        if viewer.is_running() and num_loops >= 0:
             print("\nAll loops complete. Press close to exit.")
             while viewer.is_running():
                 mujoco.mj_step(task.model, task.data)
@@ -473,16 +499,16 @@ def main():
     parser.add_argument(
         "--target",
         type=str,
-        default="ramekin_2",
-        choices=["ramekin_1", "ramekin_2", "ramekin_3", "ramekin_4",
+        default="all",
+        choices=["all", "ramekin_1", "ramekin_2", "ramekin_3", "ramekin_4",
                  "bowl_1", "bowl_2", "bowl_3", "bowl_4"],
-        help="Target bowl/ramekin (default: ramekin_2). Can use bowl_N or ramekin_N.",
+        help="Target bowl/ramekin. 'all' cycles through all 4 bowls (default: all).",
     )
     parser.add_argument(
         "--loop",
         type=int,
-        default=1,
-        help="Number of transfer loops (default: 1)",
+        default=-1,
+        help="Number of transfer loops (-1 = infinite until closed, default: -1)",
     )
     parser.add_argument(
         "--speed",
@@ -493,13 +519,13 @@ def main():
     parser.add_argument(
         "--debug_hold",
         type=float,
-        default=3.0,
-        help="Hold time after each phase for debugging (seconds, default: 3.0)",
+        default=0.0,
+        help="Hold time after each phase for debugging (seconds, default: 0.0)",
     )
 
     args = parser.parse_args()
 
-    # Convert bowl_N to ramekin_N if needed
+    # Convert bowl_N to ramekin_N if needed (keep "all" as-is)
     target = args.target
     if target.startswith("bowl_"):
         target = target.replace("bowl_", "ramekin_")

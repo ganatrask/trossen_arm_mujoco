@@ -1,4 +1,4 @@
-<mujoco model="telop_follower_spoon">
+<mujoco model="teleop_follower_spoon">
   <compiler angle="radian" meshdir="../meshes" texturedir="../" autolimits="true"/>
 
   <option integrator="implicitfast"/>

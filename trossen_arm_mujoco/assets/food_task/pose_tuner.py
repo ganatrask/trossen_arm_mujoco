@@ -90,7 +90,7 @@ def run_pose_tuner(pose_name: str = "above_plate_teleop2"):
     cam_list = ["cam_high", "cam"]
     env = make_sim_env(
         SingleArmTask,
-        xml_file="wxai/telop_scene.xml",
+        xml_file="wxai/teleop_scene.xml",
         task_name="pose_tuner",
         onscreen_render=True,
         cam_list=cam_list,

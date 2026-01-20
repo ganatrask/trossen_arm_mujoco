@@ -10,3 +10,6 @@ data/
 .ruff_cache
 **/dual_arm_recording*/
 *.mkv
+
+# Old file 
+trossen_arm_mujoco/scripts/replay_episode_telop.py

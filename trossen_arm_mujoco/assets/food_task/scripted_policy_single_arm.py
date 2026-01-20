@@ -512,11 +512,11 @@ def test_policy(
         policy = SimplePickPolicy(inject_noise)
         task_cls = SingleArmTask
     elif policy_name == "teleop":
-        xml_file = "wxai/telop_scene.xml"
+        xml_file = "wxai/teleop_scene.xml"
         policy = TeleopPolicy(inject_noise)
         task_cls = FoodTransferTask if use_rewards else SingleArmTask
     elif policy_name == "teleop_2":
-        xml_file = "wxai/telop_scene.xml"
+        xml_file = "wxai/teleop_scene.xml"
         policy = TeleopPolicy2(inject_noise)
         task_cls = FoodTransferTask if use_rewards else SingleArmTask
     else:

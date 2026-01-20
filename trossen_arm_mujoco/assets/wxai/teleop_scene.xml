@@ -1,5 +1,5 @@
 <mujoco model="wxai base scene with table">
-  <include file="../food_task/telop_follower_spoon.xml"/>
+  <include file="../food_task/teleop_follower_spoon.xml"/>
 
   <compiler meshdir="../meshes" texturedir="../"/>
 
@@ -85,11 +85,8 @@
     <geom name="tabletop" type="box" size="0.8 0.8 0.02" pos="0 0 0.02" material="table_mat"/>
 
     <!-- Camera positioned to see the entire robot -->
-    <camera name="cam_high" pos="0.6 0.6 0.6" xyaxes="-1 1 0 -0.4 -0.4 1.4" mode="fixed" fovy="50"/>
-    <camera name="cam_front" pos="0.7 0 0.4" xyaxes="0 1 0 -0.5 0 1" mode="fixed" fovy="60"/>
-    <camera name="cam_side" pos="0 0.7 0.4" xyaxes="-1 0 0 0 -0.5 1" mode="fixed" fovy="60"/>
-    <!-- Camera for food service view - looking down at setup from front -->
-    <camera name="cam_food_service" pos="0 -0.5 0.6" xyaxes="1 0 0 0 0.6 1" mode="fixed" fovy="60"/>
+    <camera name="cam_high" pos="-0.776 -0.127 -0.337" xyaxes="0.032 0.999 0.000 -0.840 0.027 0.542" mode="fixed" fovy="60"/>
+    <camera name="cam_front" pos="-1.339 -0.254 0.229" xyaxes="-0.021 1.000 0.000 -0.625 -0.013 0.781" mode="fixed" fovy="60"/>
 
     <!-- Container: 12.75" x 10.5" x 4" (325mm x 265mm x 101.6mm) -->
     <!-- Wall thickness: 5mm = 0.005m -->

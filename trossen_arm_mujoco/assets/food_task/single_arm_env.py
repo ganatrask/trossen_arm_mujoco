@@ -196,7 +196,7 @@ class FoodTransferTask(TrossenAISingleArmTask):
     :param cam_list: List of cameras to capture observations.
     """
 
-    # Target positions (from telop_scene.xml)
+    # Target positions (from teleop_scene.xml)
     CONTAINER_POS = np.array([-0.63, -0.15, 0.04])
     RAMEKIN_POSITIONS = {
         "ramekin_1": np.array([-0.22, -0.26, 0.04]),

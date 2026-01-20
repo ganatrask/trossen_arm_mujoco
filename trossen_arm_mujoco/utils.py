@@ -30,6 +30,7 @@ import collections
 import os
 
 from dm_control import mujoco
+import pandas as pd
 from dm_control.mujoco import Physics
 from dm_control.rl import control
 from dm_control.suite import base
@@ -38,6 +39,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from trossen_arm_mujoco.constants import ASSETS_DIR, DT
+
+
+def load_arm_data(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Load joint positions and timestamps from a teleop CSV file.
+
+    :param csv_path: Path to the CSV file.
+    :return: Tuple of (positions array [N, 7], timestamps array in seconds [N]).
+    """
+    df = pd.read_csv(csv_path)
+    position_cols = [f"position_{i}" for i in range(7)]
+    positions = df[position_cols].to_numpy()
+
+    # Convert timestamps from nanoseconds to seconds (relative to start)
+    timestamps_ns = df["timestamp"].to_numpy()
+    timestamps = (timestamps_ns - timestamps_ns[0]) / 1e9
+
+    return positions, timestamps
 
 
 def sample_box_pose() -> np.ndarray:

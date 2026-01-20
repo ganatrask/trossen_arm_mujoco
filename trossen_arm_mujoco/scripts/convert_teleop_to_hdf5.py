@@ -1,31 +1,3 @@
-# Copyright 2025 Trossen Robotics
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above copyright
-#      notice, this list of conditions and the following disclaimer in the
-#      documentation and/or other materials provided with the distribution.
-#
-#    * Neither the name of the copyright holder nor the names of its
-#      contributors may be used to endorse or promote products derived from
-#      this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
 """
 Convert real teleop CSV recordings to HDF5 datasets by replaying in simulation.
 
@@ -70,34 +42,16 @@ HDF5 structure:
 
 import argparse
 import os
+import shutil
 import time
 from pathlib import Path
 
 import h5py
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 
 from trossen_arm_mujoco.assets.food_task.single_arm_env import FoodTransferTask
-from trossen_arm_mujoco.utils import make_sim_env
-
-
-def load_arm_data(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Load joint positions and timestamps from a CSV file.
-
-    :param csv_path: Path to the CSV file.
-    :return: Tuple of (positions array, timestamps array in seconds).
-    """
-    df = pd.read_csv(csv_path)
-    position_cols = [f"position_{i}" for i in range(7)]
-    positions = df[position_cols].to_numpy()
-
-    # Convert timestamps from nanoseconds to seconds (relative to start)
-    timestamps_ns = df["timestamp"].to_numpy()
-    timestamps = (timestamps_ns - timestamps_ns[0]) / 1e9
-
-    return positions, timestamps
+from trossen_arm_mujoco.utils import load_arm_data, make_sim_env
 
 
 def convert_episode(
@@ -119,7 +73,7 @@ def convert_episode(
     :param realtime: Whether to replay at original timing (slower but matches real dynamics).
     :return: Dictionary with episode results.
     """
-    # Load trajectory (use original timesteps, no resampling)
+    # Load trajectory 
     positions, timestamps = load_arm_data(csv_path)
     duration = timestamps[-1]
     print(f"  Loaded: {len(positions)} timesteps, {duration:.2f}s")
@@ -127,7 +81,7 @@ def convert_episode(
     # Setup simulation environment
     env = make_sim_env(
         FoodTransferTask,
-        xml_file="wxai/telop_scene.xml",
+        xml_file="wxai/teleop_scene.xml",
         task_name="food_transfer",
         onscreen_render=False,
         cam_list=cam_list,
@@ -276,7 +230,7 @@ def main(args):
         print(f"Created output directory: {output_dir}")
 
     # Camera list
-    cam_list = args.cam_names.split(",") if args.cam_names else ["cam_high", "cam"]
+    cam_list = args.cam_names.split(",") if args.cam_names else ["cam_high", "cam_front", "cam"]
 
     print(f"Converting {len(episode_dirs)} episodes to HDF5")
     print(f"  Arm: {args.arm}, Role: {args.role}")
@@ -364,6 +318,20 @@ def main(args):
         count = reward_counts[reward]
         label = {0: "No reach", 1: "Container only", 2: "Full success"}.get(reward, f"Reward {reward}")
         print(f"  Reward {reward} ({label}): {count} episodes")
+
+    # Move successful episodes to success folder
+    if success_count > 0:
+        success_dir = os.path.join(output_dir, "success")
+        os.makedirs(success_dir, exist_ok=True)
+        print(f"\nMoving {success_count} successful episodes to: {success_dir}")
+        for r in all_results:
+            if r.get("success", False):
+                src = os.path.join(output_dir, f"episode_{r['episode_idx']}.hdf5")
+                dst = os.path.join(success_dir, f"episode_{r['episode_idx']}.hdf5")
+                if os.path.exists(src):
+                    shutil.move(src, dst)
+                    print(f"  Moved: episode_{r['episode_idx']}.hdf5")
+
     print("=" * 70)
 
 

@@ -215,8 +215,8 @@ The package includes a single-arm manipulation task for food scooping and transf
 
 ### 5.1 Scene Files
 
-- `assets/wxai/telop_scene.xml` - Teleop scene with container, bowl, and 4 ramekins arranged in a 2x2 grid
-- `assets/food_task/telop_follower_spoon.xml` - Single arm robot model with spoon end-effector
+- `assets/wxai/teleop_scene.xml` - Teleop scene with container, bowl, and 4 ramekins arranged in a 2x2 grid
+- `assets/food_task/teleop_follower_spoon.xml` - Single arm robot model with spoon end-effector
 
 ### 5.2 Running Single-Arm Policies
 
@@ -249,13 +249,13 @@ You can replay recorded teleoperation data in simulation:
 
 ```bash
 # Replay a single episode
-python -m trossen_arm_mujoco.scripts.replay_episode_telop \
+python -m trossen_arm_mujoco.scripts.replay_episode_teleop \
     --data_dir /home/shyam/projects/cc/dataset/data_from_raven/dual_arm_recording_20260113_131443  \
     --arm right \
     --role follower
 
 # Replay multiple episodes from a root directory
-python -m trossen_arm_mujoco.scripts.replay_episode_telop \
+python -m trossen_arm_mujoco.scripts.replay_episode_teleop \
     --data_root /home/shyam/projects/cc/data_from_raven \
     --num_episodes 4 \
     --arm right \
@@ -276,7 +276,7 @@ Convert real teleoperation CSV recordings to HDF5 datasets by replaying them in 
 
 ```bash
 python -m trossen_arm_mujoco.scripts.convert_teleop_to_hdf5 \
-    --data_root /home/shyam/projects/cc/data_from_raven \
+    --data_root /home/shyam/projects/cc/dataset/data_from_raven \
     --output_dir teleop_hdf5_dataset
 ```
 

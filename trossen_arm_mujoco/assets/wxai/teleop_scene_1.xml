@@ -110,9 +110,9 @@
     </body>
     -->
 
-    <!-- Threshold Ramekins - 4 arranged in a single line: Ramekin_2, Ramekin_3, Ramekin_4, Ramekin_1 -->
-    <!-- Ramekin 1 - rightmost in the line -->
-    <body name="ramekin_1" pos="-0.04 -0.19 0.04">
+    <!-- Bowls - 4 arranged in a single line: Bowl_2, Bowl_3, Bowl_4, Bowl_1 -->
+    <!-- Bowl 1 - rightmost in the line -->
+    <body name="bowl_1" pos="-0.04 -0.19 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
@@ -148,8 +148,8 @@
       <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
     </body>
 
-    <!-- Ramekin 2 - leftmost in the line -->
-    <body name="ramekin_2" pos="-0.40 -0.19 0.04">
+    <!-- Bowl 2 - leftmost in the line -->
+    <body name="bowl_2" pos="-0.40 -0.19 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
@@ -185,8 +185,8 @@
       <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
     </body>
 
-    <!-- Ramekin 3 - second from left -->
-    <body name="ramekin_3" pos="-0.28 -0.19 0.04">
+    <!-- Bowl 3 - second from left -->
+    <body name="bowl_3" pos="-0.28 -0.19 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
@@ -222,8 +222,8 @@
       <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
     </body>
 
-    <!-- Ramekin 4 - third from left -->
-    <body name="ramekin_4" pos="-0.16 -0.19 0.04">
+    <!-- Bowl 4 - third from left -->
+    <body name="bowl_4" pos="-0.16 -0.19 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>

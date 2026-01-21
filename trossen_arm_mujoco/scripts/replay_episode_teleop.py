@@ -4,40 +4,21 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 from mujoco import viewer as mj_viewer
 
 from trossen_arm_mujoco.assets.food_task.single_arm_env import FoodTransferTask
-from trossen_arm_mujoco.utils import make_sim_env
+from trossen_arm_mujoco.utils import load_arm_data, make_sim_env
 
-# Evaluation target positions (from telop_scene.xml)
+# Evaluation target positions (from teleop_scene.xml)
 CONTAINER_POS = np.array([-0.63, -0.15, 0.04])
-RAMEKIN_POSITIONS = {
-    "ramekin_1": np.array([-0.22, -0.26, 0.04]),
-    "ramekin_2": np.array([-0.36, -0.26, 0.04]),
-    "ramekin_3": np.array([-0.36, -0.12, 0.04]),
-    "ramekin_4": np.array([-0.22, -0.12, 0.04]),
+BOWL_POSITIONS = {
+    "bowl_1": np.array([-0.22, -0.26, 0.04]),
+    "bowl_2": np.array([-0.36, -0.26, 0.04]),
+    "bowl_3": np.array([-0.36, -0.12, 0.04]),
+    "bowl_4": np.array([-0.22, -0.12, 0.04]),
 }
 REACH_THRESHOLD = 0.06  # 6cm threshold for "reached"
 DWELL_TIME = 2.0  # seconds the spoon must stay near target to count as "reached"
-
-
-def load_arm_data(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Load joint positions and timestamps from a CSV file.
-
-    :param csv_path: Path to the CSV file.
-    :return: Tuple of (positions array, timestamps array in seconds).
-    """
-    df = pd.read_csv(csv_path)
-    position_cols = [f"position_{i}" for i in range(7)]
-    positions = df[position_cols].to_numpy()
-
-    # Convert timestamps from nanoseconds to seconds (relative to start)
-    timestamps_ns = df["timestamp"].to_numpy()
-    timestamps = (timestamps_ns - timestamps_ns[0]) / 1e9
-
-    return positions, timestamps
 
 
 def replay_episode_sim(
@@ -78,7 +59,7 @@ def replay_episode_sim(
     # Setup simulation environment with FoodTransferTask for reward tracking
     env = make_sim_env(
         FoodTransferTask,
-        xml_file="wxai/telop_scene.xml",
+        xml_file="wxai/teleop_scene.xml",
         task_name="food_transfer",
         onscreen_render=True,
         cam_list=cam_list,
@@ -102,22 +83,22 @@ def replay_episode_sim(
     eval_results = {
         "reached_container": False,
         "container_reach_time": None,
-        "reached_ramekins": set(),
-        "ramekin_reach_times": {},
+        "reached_bowls": set(),
+        "bowl_reach_times": {},
         "min_container_dist": float("inf"),
-        "min_ramekin_dists": {name: float("inf") for name in RAMEKIN_POSITIONS.keys()},
+        "min_bowl_dists": {name: float("inf") for name in BOWL_POSITIONS.keys()},
     }
 
     # Dwell time tracking (when did we first enter the threshold zone)
     dwell_tracking = {
         "container_enter_time": None,
-        "ramekin_enter_times": {name: None for name in RAMEKIN_POSITIONS.keys()},
+        "bowl_enter_times": {name: None for name in BOWL_POSITIONS.keys()},
     }
 
     # Print actual object positions from simulation
     print("\n[DEBUG] Actual object positions in simulation:")
     print(f"  Container: {env.physics.named.data.xpos['container']}")
-    for name in RAMEKIN_POSITIONS.keys():
+    for name in BOWL_POSITIONS.keys():
         print(f"  {name}: {env.physics.named.data.xpos[name]}")
 
     print(f"\nWill log end effector pose at t = {log_at_seconds} seconds\n")
@@ -151,7 +132,7 @@ def replay_episode_sim(
                 reward = ts.reward if ts.reward is not None else 0
                 episode_rewards.append(reward)
 
-                # Evaluation: check if spoon reached container or ramekins
+                # Evaluation: check if spoon reached container or bowls
                 ee_pos = env.physics.named.data.xpos[ee_body_name]
 
                 # Get actual container position from simulation
@@ -175,27 +156,27 @@ def replay_episode_sim(
                     # Left threshold zone, reset dwell timer
                     dwell_tracking["container_enter_time"] = None
 
-                # Check ramekin reach (using actual positions from simulation)
-                for ramekin_name in RAMEKIN_POSITIONS.keys():
-                    ramekin_actual_pos = env.physics.named.data.xpos[ramekin_name]
-                    ramekin_dist = np.linalg.norm(ee_pos[:2] - ramekin_actual_pos[:2])
-                    eval_results["min_ramekin_dists"][ramekin_name] = min(
-                        eval_results["min_ramekin_dists"][ramekin_name], ramekin_dist
+                # Check bowl reach (using actual positions from simulation)
+                for bowl_name in BOWL_POSITIONS.keys():
+                    bowl_actual_pos = env.physics.named.data.xpos[bowl_name]
+                    bowl_dist = np.linalg.norm(ee_pos[:2] - bowl_actual_pos[:2])
+                    eval_results["min_bowl_dists"][bowl_name] = min(
+                        eval_results["min_bowl_dists"][bowl_name], bowl_dist
                     )
 
-                    if ramekin_dist < REACH_THRESHOLD:
+                    if bowl_dist < REACH_THRESHOLD:
                         # Inside threshold zone
-                        if dwell_tracking["ramekin_enter_times"][ramekin_name] is None:
-                            dwell_tracking["ramekin_enter_times"][ramekin_name] = elapsed
+                        if dwell_tracking["bowl_enter_times"][bowl_name] is None:
+                            dwell_tracking["bowl_enter_times"][bowl_name] = elapsed
                         # Check if we've dwelled long enough
-                        dwell_duration = elapsed - dwell_tracking["ramekin_enter_times"][ramekin_name]
-                        if dwell_duration >= DWELL_TIME and ramekin_name not in eval_results["reached_ramekins"]:
-                            eval_results["reached_ramekins"].add(ramekin_name)
-                            eval_results["ramekin_reach_times"][ramekin_name] = dwell_tracking["ramekin_enter_times"][ramekin_name]
-                            print(f"[EVAL] Reached {ramekin_name.upper()} at t={elapsed:.2f}s (dwelled {dwell_duration:.1f}s)")
+                        dwell_duration = elapsed - dwell_tracking["bowl_enter_times"][bowl_name]
+                        if dwell_duration >= DWELL_TIME and bowl_name not in eval_results["reached_bowls"]:
+                            eval_results["reached_bowls"].add(bowl_name)
+                            eval_results["bowl_reach_times"][bowl_name] = dwell_tracking["bowl_enter_times"][bowl_name]
+                            print(f"[EVAL] Reached {bowl_name.upper()} at t={elapsed:.2f}s (dwelled {dwell_duration:.1f}s)")
                     else:
                         # Left threshold zone, reset dwell timer
-                        dwell_tracking["ramekin_enter_times"][ramekin_name] = None
+                        dwell_tracking["bowl_enter_times"][bowl_name] = None
 
                 # Log end effector position at specified times
                 for t in log_at_seconds:
@@ -220,17 +201,17 @@ def replay_episode_sim(
                 else:
                     print("Container: NOT REACHED")
 
-                if eval_results["reached_ramekins"]:
-                    print(f"Ramekins reached: {', '.join(sorted(eval_results['reached_ramekins']))}")
-                    for name, t in sorted(eval_results["ramekin_reach_times"].items()):
+                if eval_results["reached_bowls"]:
+                    print(f"Bowls reached: {', '.join(sorted(eval_results['reached_bowls']))}")
+                    for name, t in sorted(eval_results["bowl_reach_times"].items()):
                         print(f"  - {name}: t={t:.2f}s")
                 else:
-                    print("Ramekins: NONE REACHED")
+                    print("Bowls: NONE REACHED")
 
                 print("\n--- Minimum distances (threshold={:.2f}m) ---".format(REACH_THRESHOLD))
                 print(f"  Container: {eval_results['min_container_dist']:.3f}m")
-                for name, dist in sorted(eval_results["min_ramekin_dists"].items()):
-                    status = "REACHED" if name in eval_results["reached_ramekins"] else "missed"
+                for name, dist in sorted(eval_results["min_bowl_dists"].items()):
+                    status = "REACHED" if name in eval_results["reached_bowls"] else "missed"
                     print(f"  {name}: {dist:.3f}m ({status})")
                 print("=" * 40)
 
@@ -238,7 +219,7 @@ def replay_episode_sim(
                     "max_reward": max_reward,
                     "success": success,
                     "reached_container": eval_results["reached_container"],
-                    "reached_ramekins": list(eval_results["reached_ramekins"]),
+                    "reached_bowls": list(eval_results["reached_bowls"]),
                 }
 
             viewer.sync()
@@ -249,7 +230,7 @@ def replay_episode_sim(
         "max_reward": max_reward,
         "success": max_reward == max_reward_possible,
         "reached_container": eval_results["reached_container"],
-        "reached_ramekins": list(eval_results["reached_ramekins"]),
+        "reached_bowls": list(eval_results["reached_bowls"]),
     }
 
 
@@ -323,8 +304,8 @@ def main(args):
         status = "SUCCESS" if r.get("success") else "FAILED"
         reward = r.get("max_reward", 0)
         container = "container" if r.get("reached_container") else ""
-        ramekins = ", ".join(r.get("reached_ramekins", []))
-        reached = ", ".join(filter(None, [container, ramekins])) or "none"
+        bowls = ", ".join(r.get("reached_bowls", []))
+        reached = ", ".join(filter(None, [container, bowls])) or "none"
         print(f"  {r['episode_idx']:2d}. {r['episode_name']}: reward={reward} [{status}] (reached: {reached})")
 
     print("-" * 70)

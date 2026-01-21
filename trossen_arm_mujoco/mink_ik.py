@@ -469,7 +469,7 @@ def test_mink_ik():
         [0.0, 0.0, 0.2],    # Above robot
         [-0.3, 0.0, 0.15],  # Forward
         [-0.2, 0.1, 0.2],   # Forward-left
-        [-0.4, -0.1, 0.1],  # Far forward-right (near ramekins)
+        [-0.4, -0.1, 0.1],  # Far forward-right (near bowls)
     ]
 
     print("\nTesting IK solutions:")

@@ -345,7 +345,7 @@ class TeleopPolicy(BaseSingleArmPolicy):
         # t=8s: Scoop position (wrist rotated)
         scoop = np.array([0.0772, 1.7725, 1.7874, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
 
-        # t=12s: Move to ramekin_2 area (front right ramekin at -0.36, -0.26)
+        # t=12s: Move to bowl_2 area (front right bowl at -0.36, -0.26)
         above_plate = np.array([0.4080, 1.1198, 0.8974, -0.3222, -0.6323, -0.5343, GRIPPER_OPEN, GRIPPER_OPEN])
 
         # t=19s: Dump food (wrist rotation)
@@ -364,20 +364,20 @@ class TeleopPolicy(BaseSingleArmPolicy):
             {"t": 1100, "qpos": return_pos},   # ~22s
         ]
 
-        print("Generated teleop trajectory (ramekin_2) with key waypoints:")
+        print("Generated teleop trajectory (bowl_2) with key waypoints:")
         for wp in self.trajectory:
             print(f"  t={wp['t']:4d}: joints={np.round(wp['qpos'][:6], 3)}")
 
 
 class TeleopPolicy2(BaseSingleArmPolicy):
     """
-    Policy based on teleoperated trajectory targeting ramekin_3 (back left).
+    Policy based on teleoperated trajectory targeting bowl_3 (back left).
     Robot interpolates smoothly between waypoints.
     """
 
     def generate_trajectory(self, ts_first: TimeStep, physics: Physics = None):
         """
-        Generates trajectory from key waypoints targeting ramekin_3.
+        Generates trajectory from key waypoints targeting bowl_3.
 
         :param ts_first: The first observation of the episode.
         :param physics: Physics instance (unused, for API compatibility).
@@ -396,11 +396,11 @@ class TeleopPolicy2(BaseSingleArmPolicy):
         # t=8s: Scoop position (wrist rotated)
         scoop = np.array([0.0772, 1.7725, 1.7874, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
 
-        # t=10s: Lift position - raise arm to clear container before moving to ramekin_3
+        # t=10s: Lift position - raise arm to clear container before moving to bowl_3
         # Lower joint_1 and joint_2 to lift the arm higher
         lift = np.array([0.0772, 1.2, 1.2, -0.6491, -0.7898, -0.6094, GRIPPER_OPEN, GRIPPER_OPEN])
 
-        # t=14s: Move to ramekin_3 area (back left ramekin at -0.36, -0.12)
+        # t=14s: Move to bowl_3 area (back left bowl at -0.36, -0.12)
         # Tuned using pose_tuner.py
         above_plate = np.array([0.1937, 1.1011, 0.9224, -0.9347, -0.5698, -0.5343, GRIPPER_OPEN, GRIPPER_OPEN])
 
@@ -422,7 +422,7 @@ class TeleopPolicy2(BaseSingleArmPolicy):
             {"t": 1100, "qpos": return_pos},   # ~22s - hold at end
         ]
 
-        print("Generated teleop_2 trajectory (ramekin_3) with key waypoints:")
+        print("Generated teleop_2 trajectory (bowl_3) with key waypoints:")
         for wp in self.trajectory:
             print(f"  t={wp['t']:4d}: joints={np.round(wp['qpos'][:6], 3)}")
 
@@ -541,7 +541,7 @@ def test_policy(
         print(f"Rewards enabled: max_reward={env.task.max_reward}")
         print("  0 = No reach")
         print("  1 = Reached container (stayed 2s)")
-        print("  2 = Reached ramekin (stayed 2s)")
+        print("  2 = Reached bowl (stayed 2s)")
 
     # Reward tracking
     episode_rewards = []

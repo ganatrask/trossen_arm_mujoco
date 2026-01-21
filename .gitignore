@@ -1,23 +1,15 @@
-# Python
-__pycache__/
+__pycache__
 *.egg-info/
-.mypy_cache/
-.ruff_cache/
-
-# Build artifacts
+*.mp4
+*output
 build/
-
-# Data directories
 trossen_ai_data/
 output_csvs/
 data/
+.mypy_cache/
+.ruff_cache
+**/dual_arm_recording*/
+*.mkv
 
-# Output files
-*.mp4
-*output
-
-# External repositories
-mujoco_scanned_objects/
-
-# Temporary or generated files
-table spoon.STL
+# Old file 
+trossen_arm_mujoco/scripts/replay_episode_telop.py

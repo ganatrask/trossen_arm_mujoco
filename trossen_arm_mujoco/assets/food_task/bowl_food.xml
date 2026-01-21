@@ -1,0 +1,460 @@
+<mujoco model="kitchen_bowl">
+  <compiler meshdir="../meshes" texturedir="../meshes"/>
+
+  <option timestep="0.002" iterations="50" solver="Newton" tolerance="1e-10">
+    <flag contact="enable" gravity="enable"/>
+  </option>
+
+  <asset>
+    <!-- Plate asset from scanned objects -->
+    <texture name="plate_texture" type="2d"
+             file="plate/texture.png"/>
+    <material name="plate_mat" texture="plate_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="plate_mesh"
+          file="plate/model.obj"/>
+
+    <!-- Table spoon mesh -->
+    <mesh name="spoon_mesh" file="table_spoon.stl" scale="0.001 0.001 0.001"/>
+    <material name="spoon_mat" rgba="0.8 0.8 0.85 1" specular="0.7" shininess="0.6"/>
+
+    <!-- Bradshaw plastic bowl from scanned objects -->
+    <texture name="bradshaw_bowl_texture" type="2d"
+             file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/texture.png"/>
+    <material name="bradshaw_bowl_mat" texture="bradshaw_bowl_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="bradshaw_bowl_mesh"
+          file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model.obj"/>
+
+    <!-- Collision meshes for Bradshaw bowl (all 32 parts) -->
+    <mesh name="bradshaw_collision_0" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_0.obj"/>
+    <mesh name="bradshaw_collision_1" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_1.obj"/>
+    <mesh name="bradshaw_collision_2" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_2.obj"/>
+    <mesh name="bradshaw_collision_3" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_3.obj"/>
+    <mesh name="bradshaw_collision_4" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_4.obj"/>
+    <mesh name="bradshaw_collision_5" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_5.obj"/>
+    <mesh name="bradshaw_collision_6" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_6.obj"/>
+    <mesh name="bradshaw_collision_7" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_7.obj"/>
+    <mesh name="bradshaw_collision_8" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_8.obj"/>
+    <mesh name="bradshaw_collision_9" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_9.obj"/>
+    <mesh name="bradshaw_collision_10" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_10.obj"/>
+    <mesh name="bradshaw_collision_11" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_11.obj"/>
+    <mesh name="bradshaw_collision_12" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_12.obj"/>
+    <mesh name="bradshaw_collision_13" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_13.obj"/>
+    <mesh name="bradshaw_collision_14" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_14.obj"/>
+    <mesh name="bradshaw_collision_15" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_15.obj"/>
+    <mesh name="bradshaw_collision_16" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_16.obj"/>
+    <mesh name="bradshaw_collision_17" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_17.obj"/>
+    <mesh name="bradshaw_collision_18" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_18.obj"/>
+    <mesh name="bradshaw_collision_19" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_19.obj"/>
+    <mesh name="bradshaw_collision_20" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_20.obj"/>
+    <mesh name="bradshaw_collision_21" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_21.obj"/>
+    <mesh name="bradshaw_collision_22" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_22.obj"/>
+    <mesh name="bradshaw_collision_23" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_23.obj"/>
+    <mesh name="bradshaw_collision_24" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_24.obj"/>
+    <mesh name="bradshaw_collision_25" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_25.obj"/>
+    <mesh name="bradshaw_collision_26" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_26.obj"/>
+    <mesh name="bradshaw_collision_27" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_27.obj"/>
+    <mesh name="bradshaw_collision_28" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_28.obj"/>
+    <mesh name="bradshaw_collision_29" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_29.obj"/>
+    <mesh name="bradshaw_collision_30" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_30.obj"/>
+    <mesh name="bradshaw_collision_31" file="Bradshaw_International_11642_7_Qt_MP_Plastic_Bowl/model_collision_31.obj"/>
+  </asset>
+
+  <worldbody>
+    <!-- Simple ground plane so food settles instead of falling forever -->
+    <geom name="ground" type="plane" size="1 1 0.1" pos="0 0 0" rgba="0.85 0.85 0.85 1"/>
+
+    <!-- Bradshaw plastic bowl with mesh collision -->
+    <body name="bradshaw_bowl" pos="-0.15 -0.2 0.04">
+      <!-- Visual mesh -->
+      <geom type="mesh" mesh="bradshaw_bowl_mesh" material="bradshaw_bowl_mat" contype="0" conaffinity="0" group="2"/>
+      <!-- Use the scanned collision meshes to match the Bradshaw bowl shape -->
+      <geom type="mesh" mesh="bradshaw_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="bradshaw_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- Static plate placed near the bowls -->
+    <body name="plate" pos="0.3 -0.2 0.02">
+      <geom type="mesh" mesh="plate_mesh" material="plate_mat"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Table spoon placed inside the Bradshaw bowl (separate loose spoon) -->
+    <body name="loose_spoon" pos="-0.15 -0.20 0.08">
+      <freejoint/>
+      <geom type="mesh" mesh="spoon_mesh" material="spoon_mat"
+            contype="1" conaffinity="1" mass="0.05"/>
+    </body>
+
+    <!-- White beans for Bradshaw bowl (half-filled) -->
+    <body name="food_bradshaw_1" pos="-0.15 -0.20 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_2" pos="-0.13 -0.20 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_3" pos="-0.17 -0.19 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_4" pos="-0.14 -0.21 0.158">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_5" pos="-0.16 -0.195 0.162">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_6" pos="-0.15 -0.21 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_7" pos="-0.16 -0.20 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_8" pos="-0.14 -0.19 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_9" pos="-0.15 -0.195 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_10" pos="-0.16 -0.21 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_11" pos="-0.14 -0.20 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_12" pos="-0.17 -0.20 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_13" pos="-0.15 -0.19 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_14" pos="-0.13 -0.21 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_15" pos="-0.17 -0.21 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_16" pos="-0.16 -0.19 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_17" pos="-0.14 -0.195 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_18" pos="-0.15 -0.205 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_19" pos="-0.13 -0.19 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_20" pos="-0.17 -0.195 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_21" pos="-0.155 -0.20 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_22" pos="-0.145 -0.21 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_23" pos="-0.165 -0.20 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_24" pos="-0.15 -0.215 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_25" pos="-0.135 -0.20 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_26" pos="-0.165 -0.195 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_27" pos="-0.14 -0.205 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_28" pos="-0.16 -0.205 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_29" pos="-0.155 -0.195 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_30" pos="-0.145 -0.20 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_31" pos="-0.15 -0.185 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_32" pos="-0.155 -0.21 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_33" pos="-0.165 -0.21 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_34" pos="-0.135 -0.195 0.16">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_35" pos="-0.145 -0.19 0.15">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_36" pos="-0.144 -0.206 0.152">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_37" pos="-0.149 -0.204 0.154">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_38" pos="-0.130 -0.213 0.152">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_39" pos="-0.136 -0.189 0.153">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_40" pos="-0.147 -0.184 0.161">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_41" pos="-0.145 -0.223 0.158">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_42" pos="-0.172 -0.214 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_43" pos="-0.128 -0.181 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_44" pos="-0.142 -0.190 0.158">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_45" pos="-0.144 -0.183 0.151">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_46" pos="-0.130 -0.214 0.161">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_47" pos="-0.169 -0.201 0.153">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_48" pos="-0.172 -0.184 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_49" pos="-0.173 -0.209 0.152">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_50" pos="-0.131 -0.215 0.159">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_51" pos="-0.165 -0.204 0.163">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_52" pos="-0.156 -0.189 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_53" pos="-0.159 -0.202 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_54" pos="-0.168 -0.181 0.157">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_55" pos="-0.134 -0.182 0.163">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_56" pos="-0.162 -0.179 0.159">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_57" pos="-0.158 -0.198 0.150">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_58" pos="-0.136 -0.205 0.157">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_59" pos="-0.166 -0.183 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_60" pos="-0.132 -0.189 0.154">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_61" pos="-0.146 -0.192 0.161">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_62" pos="-0.135 -0.176 0.153">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_63" pos="-0.140 -0.207 0.162">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_64" pos="-0.150 -0.187 0.159">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_65" pos="-0.147 -0.215 0.152">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_66" pos="-0.130 -0.182 0.161">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_67" pos="-0.168 -0.223 0.155">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_68" pos="-0.173 -0.215 0.162">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_69" pos="-0.165 -0.194 0.154">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_70" pos="-0.144 -0.216 0.164">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_71" pos="-0.139 -0.189 0.157">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_72" pos="-0.155 -0.200 0.160">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_73" pos="-0.164 -0.205 0.154">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_74" pos="-0.140 -0.186 0.164">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_75" pos="-0.166 -0.196 0.151">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_76" pos="-0.151 -0.185 0.156">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_77" pos="-0.161 -0.214 0.150">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_78" pos="-0.159 -0.217 0.158">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_79" pos="-0.169 -0.224 0.164">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_80" pos="-0.132 -0.187 0.160">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_81" pos="-0.168 -0.202 0.153">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_82" pos="-0.148 -0.200 0.161">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_83" pos="-0.154 -0.176 0.162">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_84" pos="-0.145 -0.193 0.162">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_85" pos="-0.158 -0.199 0.156">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+  </worldbody>
+</mujoco>

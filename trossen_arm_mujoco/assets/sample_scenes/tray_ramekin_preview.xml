@@ -1,0 +1,60 @@
+<mujoco model="tray_ramekin_preview">
+  <compiler angle="radian" meshdir="/home/shyam/projects/cc/mujoco_scanned_objects/models/" texturedir="/home/shyam/projects/cc/mujoco_scanned_objects/models/"/>
+
+  <option gravity="0 0 -9.81"/>
+
+  <asset>
+    <!-- Tray assets -->
+    <texture type="2d" name="tray_texture" file="Threshold_Tray_Rectangle_Porcelain/texture.png"/>
+    <material name="tray_material" texture="tray_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="tray_mesh" file="Threshold_Tray_Rectangle_Porcelain/model.obj"/>
+
+    <!-- Ramekin assets -->
+    <texture type="2d" name="ramekin_texture" file="Threshold_Ramekin_White_Porcelain/texture.png"/>
+    <material name="ramekin_material" texture="ramekin_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="ramekin_mesh" file="Threshold_Ramekin_White_Porcelain/model.obj"/>
+
+    <!-- Table texture -->
+    <texture type="2d" name="wood_tex" builtin="flat" rgb1="0.6 0.4 0.2" rgb2="0.5 0.35 0.15" width="512" height="512"/>
+    <material name="wood_mat" texture="wood_tex" specular="0.1" shininess="0.1"/>
+
+    <!-- Floor -->
+    <texture type="2d" name="floor_tex" builtin="checker" rgb1="0.9 0.9 0.9" rgb2="0.7 0.7 0.7" width="512" height="512"/>
+    <material name="floor_mat" texture="floor_tex" texrepeat="5 5" specular="0.1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Lighting -->
+    <light pos="0 0 2" dir="0 0 -1" diffuse="1 1 1" specular="0.3 0.3 0.3"/>
+    <light pos="1 1 1.5" dir="-0.5 -0.5 -1" diffuse="0.5 0.5 0.5"/>
+
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.9 0.9 0.9 1" material="floor_mat"/>
+
+    <!-- Table surface -->
+    <body name="table" pos="0 0 0.4">
+      <geom name="table_top" type="box" size="0.4 0.3 0.02" material="wood_mat"/>
+    </body>
+
+    <!-- Tray - positioned on table -->
+    <body name="tray" pos="0 0 0.44">
+      <freejoint/>
+      <geom name="tray_visual" type="mesh" mesh="tray_mesh" material="tray_material"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Ramekin 1 - on top of tray, left side -->
+    <body name="ramekin_1" pos="-0.08 0 0.50">
+      <freejoint/>
+      <geom name="ramekin_1_visual" type="mesh" mesh="ramekin_mesh" material="ramekin_material"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Ramekin 2 - on top of tray, right side -->
+    <body name="ramekin_2" pos="0.08 0 0.50">
+      <freejoint/>
+      <geom name="ramekin_2_visual" type="mesh" mesh="ramekin_mesh" material="ramekin_material"
+            contype="1" conaffinity="1"/>
+    </body>
+  </worldbody>
+</mujoco>

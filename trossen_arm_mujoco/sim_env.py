@@ -264,13 +264,17 @@ def test_sim_teleop():
     # setup plotting
     plt_imgs = plot_observation_images(ts.observation, cam_list)
 
-    plt_imgs[0].set_data(ts.observation["images"]["cam_high"])
-    plt_imgs[1].set_data(ts.observation["images"]["cam_low"])
-    plt_imgs[2].set_data(ts.observation["images"]["cam_left_wrist"])
-    plt_imgs[3].set_data(ts.observation["images"]["cam_right_wrist"])
+    for t in range(1000):
+        action = np.random.uniform(-np.pi, np.pi, 16)
+        ts = env.step(action)
+        episode.append(ts)
 
-    plt.pause(0.02)
-    plt.show(block=True)
+        plt_imgs[0].set_data(ts.observation["images"]["cam_high"])
+        plt_imgs[1].set_data(ts.observation["images"]["cam_low"])
+        plt_imgs[2].set_data(ts.observation["images"]["cam_left_wrist"])
+        plt_imgs[3].set_data(ts.observation["images"]["cam_right_wrist"])
+
+        plt.pause(0.02)
 
 
 if __name__ == "__main__":

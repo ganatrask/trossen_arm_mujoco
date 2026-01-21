@@ -30,6 +30,7 @@ import collections
 import os
 
 from dm_control import mujoco
+import pandas as pd
 from dm_control.mujoco import Physics
 from dm_control.rl import control
 from dm_control.suite import base
@@ -38,6 +39,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from trossen_arm_mujoco.constants import ASSETS_DIR, DT
+
+
+def load_arm_data(csv_path: str) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Load joint positions and timestamps from a teleop CSV file.
+
+    :param csv_path: Path to the CSV file.
+    :return: Tuple of (positions array [N, 7], timestamps array in seconds [N]).
+    """
+    df = pd.read_csv(csv_path)
+    position_cols = [f"position_{i}" for i in range(7)]
+    positions = df[position_cols].to_numpy()
+
+    # Convert timestamps from nanoseconds to seconds (relative to start)
+    timestamps_ns = df["timestamp"].to_numpy()
+    timestamps = (timestamps_ns - timestamps_ns[0]) / 1e9
+
+    return positions, timestamps
 
 
 def sample_box_pose() -> np.ndarray:
@@ -96,16 +115,13 @@ def make_sim_env(
     :param cam_list: List of camera names to be used, defaults to ``[]``.
     :return: The simulated robot environment.
     """
-    if "sim_transfer_cube" in task_name or task_name == "single_arm":
-        assets_path = os.path.join(ASSETS_DIR, xml_file)
-        physics = mujoco.Physics.from_xml_path(assets_path)
-        task = task_class(
-            random=False,
-            onscreen_render=onscreen_render,
-            cam_list=cam_list,
-        )
-    else:
-        raise NotImplementedError(f"Task {task_name} is not implemented.")
+    assets_path = os.path.join(ASSETS_DIR, xml_file)
+    physics = mujoco.Physics.from_xml_path(assets_path)
+    task = task_class(
+        random=False,
+        onscreen_render=onscreen_render,
+        cam_list=cam_list,
+    )
 
     return control.Environment(
         physics,
@@ -137,10 +153,7 @@ def plot_observation_images(observation: dict, cam_list: list[str]) -> list[Axes
         cols = min(3, num_cameras)  # Maximum of 3 columns
         rows = (num_cameras + cols - 1) // cols  # Compute rows dynamically
     _, axs = plt.subplots(rows, cols, figsize=(10, 10))
-    if isinstance(axs, np.ndarray):
-        axs = axs.flatten()
-    elif not isinstance(axs, list):
-        axs = [axs]
+    axs = axs.flatten() if isinstance(axs, (list, np.ndarray)) else [axs]
 
     plt_imgs: list[AxesImage] = []
     titles = {
@@ -149,6 +162,10 @@ def plot_observation_images(observation: dict, cam_list: list[str]) -> list[Axes
         "cam_teleop": "Teleoperator POV",
         "cam_left_wrist": "Left Wrist Camera",
         "cam_right_wrist": "Right Wrist Camera",
+        "cam_front": "Camera Front",
+        "cam_side": "Camera Side",
+        "cam": "Wrist Camera",
+        "cam_food_service": "Food Service View",
     }
 
     for i, cam in enumerate(cam_list):
@@ -156,7 +173,7 @@ def plot_observation_images(observation: dict, cam_list: list[str]) -> list[Axes
             plt_imgs.append(axs[i].imshow(images[cam]))
             axs[i].set_title(titles.get(cam, cam))
 
-    for ax in axs:
+    for ax in axs.flat:
         ax.axis("off")
 
     plt.ion()

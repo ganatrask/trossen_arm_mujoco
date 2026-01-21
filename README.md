@@ -209,6 +209,157 @@ Arguments:
 - `--left_ip` : IP address of the left Trossen arm. Default: 192.168.1.5
 - `--right_ip`: 	IP address of the right Trossen arm. Default: 192.168.1.4
 
+## 5. Single-Arm Food Task
+
+The package includes a single-arm manipulation task for food scooping and transfer operations using the WXAI robot arm with a spoon attachment.
+
+### 5.1 Scene Files
+
+- `assets/wxai/teleop_scene.xml` - Teleop scene with container, bowl, and 4 ramekins arranged in a 2x2 grid
+- `assets/food_task/teleop_follower_spoon.xml` - Single arm robot model with spoon end-effector
+
+### 5.2 Running Single-Arm Policies
+
+The single-arm scripted policies demonstrate food scooping from a bowl and transferring to ramekins.
+
+**Available policies:**
+- `teleop` - Targets ramekin_2 (front right)
+- `teleop_2` - Targets ramekin_3 (back left)
+- `bowl_to_plate` - Basic bowl-to-plate transfer using IK
+- `simple_pick` - Simple pick demonstration
+
+Run a policy with real-time visualization (22 seconds):
+
+```bash
+python -m trossen_arm_mujoco.assets.food_task.scripted_policy_single_arm \
+    --policy teleop_2 \
+    --episode_len 1100
+```
+
+Arguments:
+- `--policy`: Policy to run (`bowl_to_plate`, `simple_pick`, `teleop`, `teleop_2`)
+- `--episode_len`: Episode length in timesteps (50 Hz, so 1100 = 22 seconds)
+- `--no_render`: Disable visualization
+- `--inject_noise`: Add noise to actions for robustness testing
+- `--camera_view`: Show camera views in matplotlib window
+
+#### 5.2.1 Replay Recorded Teleop Data
+
+You can replay recorded teleoperation data in simulation:
+
+```bash
+# Replay a single episode
+python -m trossen_arm_mujoco.scripts.replay_episode_teleop \
+    --data_dir /home/shyam/projects/cc/dataset/data_from_raven/dual_arm_recording_20260113_131443  \
+    --arm right \
+    --role follower
+
+# Replay multiple episodes from a root directory
+python -m trossen_arm_mujoco.scripts.replay_episode_teleop \
+    --data_root /home/shyam/projects/cc/data_from_raven \
+    --num_episodes 4 \
+    --arm right \
+    --role follower
+```
+
+Arguments:
+- `--data_dir`: Single episode directory containing `arm_data` folder with CSV files
+- `--data_root`: Root directory containing multiple `dual_arm_recording_*` episode folders
+- `--num_episodes`: Number of episodes to replay (default: all)
+- `--arm`: Which arm to replay (`left` or `right`, default: `right`)
+- `--role`: Role of the arm (`leader` or `follower`, default: `follower`)
+- `--speed`: Playback speed multiplier (default: 1.0)
+
+#### 5.2.2 Convert Teleop CSV to HDF5 Dataset
+
+Convert real teleoperation CSV recordings to HDF5 datasets by replaying them in simulation. This captures simulated camera images and joint states for training.
+
+```bash
+python -m trossen_arm_mujoco.scripts.convert_teleop_to_hdf5 \
+    --data_root /home/shyam/projects/cc/dataset/data_from_raven \
+    --output_dir teleop_hdf5_dataset
+```
+
+Arguments:
+- `--data_root`: Root directory containing multiple `dual_arm_recording_*` episode folders
+- `--data_dir`: Single episode directory (alternative to `--data_root`)
+- `--output_dir`: Directory to save HDF5 files
+- `--num_episodes`: Number of episodes to convert (default: all)
+- `--arm`: Which arm to use (`left` or `right`, default: `right`)
+- `--role`: Which role to use (`leader` or `follower`, default: `follower`)
+- `--realtime`: Replay at original timing (slower, useful for verification)
+
+HDF5 output structure:
+```
+episode_X.hdf5
+├── observations/
+│   ├── images/
+│   │   ├── cam_high  (timesteps, 480, 640, 3) uint8
+│   │   └── cam       (timesteps, 480, 640, 3) uint8
+│   ├── qpos          (timesteps, 8) float64
+│   └── qvel          (timesteps, 8) float64
+├── action            (timesteps, 8) float64
+└── attrs: sim=True, source="teleop_replay", original_episode=<name>
+```
+
+#### 5.2.3 Visualize HDF5 Episodes as Videos
+
+Convert HDF5 episode files to MP4 videos for verification:
+
+```bash
+python -m trossen_arm_mujoco.scripts.visualize_eps \
+    --data_dir teleop_hdf5_dataset \
+    --root_dir . \
+    --output_dir videos \
+    --fps 200
+```
+
+Arguments:
+- `--data_dir`: Directory containing HDF5 episode files
+- `--root_dir`: Root directory (use `.` for current directory)
+- `--output_dir`: Subdirectory for output videos (default: `videos`)
+- `--fps`: Frames per second for video (use ~200 to match original teleop recording rate)
+
+Videos are saved to `<data_dir>/<output_dir>/episode_X.mp4`.
+
+### 5.3 Pose Tuner Tool
+
+An interactive tool for adjusting robot waypoints in real-time using keyboard controls.
+
+```bash
+python -m trossen_arm_mujoco.assets.food_task.pose_tuner --pose above_plate_teleop2
+```
+
+**Keyboard Controls (in terminal):**
+- `0-5`: Select joint to adjust (0=base, 1=shoulder, 2=elbow, 3-5=wrist)
+- `+` or `=`: Increase selected joint value
+- `-` or `_`: Decrease selected joint value
+- `[` / `]`: Decrease/increase step size
+- `p`: Print current pose in copy-paste format
+- `r`: Reset to initial pose
+- `q`: Quit and print final pose
+
+**Available poses to tune:**
+- `above_plate_teleop2` - Position above ramekin_3
+- `dump_teleop2` - Dump position for ramekin_3
+- `above_plate_teleop` - Position above ramekin_2
+- `dump_teleop` - Dump position for ramekin_2
+
+### 5.4 Trajectory Waypoints
+
+The teleop policies use waypoint-based trajectories with linear interpolation between poses. Each waypoint consists of:
+- 6 arm joint angles (radians)
+- 2 gripper values (0.044 = open, 0.012 = closed)
+
+Example trajectory sequence for `teleop_2`:
+1. `home` (0s) - Starting position
+2. `reach_bowl` (3s) - Extend arm into bowl
+3. `scoop` (7s) - Scoop position with wrist rotation
+4. `lift` (9s) - Lift arm to clear container
+5. `above_plate` (12s) - Position above target ramekin
+6. `dump` (17s) - Dump food with wrist rotation
+7. `return_pos` (20s) - Return to neutral position
+
 ## Customization
 
 ### 1. Modifying Tasks

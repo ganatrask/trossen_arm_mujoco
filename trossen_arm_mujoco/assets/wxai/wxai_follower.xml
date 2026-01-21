@@ -31,7 +31,7 @@
   </asset>
 
   <worldbody>
-    <body name="base_link" pos="-0.35 0 0.04">
+    <body name="base_link" pos="0 0 0">
       <inertial pos="-0.00014175 -5.228e-05 0.03175177" quat="0.503748 -0.507380 -0.494230 -0.494510" mass="0.45969858" diaginertia="0.000213926 0.000416701 0.000448963"/>
       <geom class="visual" mesh="base_link"/>
       <geom class="collision" type="cylinder" size="0.031 0.0325" pos="0 0 0.0325" quat="1 0 0 0"/>

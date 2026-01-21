@@ -360,6 +360,36 @@ Example trajectory sequence for `teleop_2`:
 6. `dump` (17s) - Dump food with wrist rotation
 7. `return_pos` (20s) - Return to neutral position
 
+### 5.5 Food Transfer with IK
+
+Run the food transfer task with interactive visualization using the Mink IK solver:
+
+```bash
+python -m trossen_arm_mujoco.scripts.food_transfer_ik --target ramekin_2 --scene wxai/food_scene.xml
+```
+
+Arguments:
+- `--target`: Target bowl (`bowl_1`, `bowl_2`, `bowl_3`, `bowl_4`, or `all` to cycle)
+- `--scene`: Scene XML file (relative to assets/ directory)
+
+### 5.6 Record Food Transfer with IK
+
+Record food transfer demonstrations using the Mink IK solver:
+
+```bash
+python -m trossen_arm_mujoco.scripts.record_food_transfer_ik \
+    --output_dir food_transfer_ik_dataset_s2_b3 \
+    --num_episodes 5 \
+    --scene wxai/teleop_scene_1.xml \
+    --target bowl_3
+```
+
+Arguments:
+- `--output_dir`: Directory to save HDF5 episode files
+- `--num_episodes`: Number of episodes to record
+- `--scene`: Scene XML file (relative to assets/ directory)
+- `--target`: Target bowl (`bowl_1`, `bowl_2`, `bowl_3`, `bowl_4`, or `all` to cycle)
+
 ## Customization
 
 ### 1. Modifying Tasks
@@ -401,7 +431,12 @@ The simulation uses XML files stored in the `assets/` directory. To introduce a 
 2. Modify `sim_env.py` to load the new environment by specifying the new XML file.
 3. Update the scripted policies in `scripted_policy.py` to accommodate new task goals and constraints.
 
-## Troubleshooting
+## TroubleshootingConfiguration
+Tasks
+Limits
+Inverse kinematics
+Utilities
+Lie
 
 If you encounter into Mesa Loader or `mujoco.FatalError: gladLoadGL error` errors:
 

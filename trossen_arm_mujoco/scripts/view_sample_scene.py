@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple viewer for the tray and ramekin sample scene."""
+"""Simple viewer for the tray and bowl sample scene."""
 
 import mujoco
 import mujoco.viewer

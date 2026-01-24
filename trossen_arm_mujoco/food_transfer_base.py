@@ -15,12 +15,62 @@ Components:
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 import mujoco
 import numpy as np
 
 from trossen_arm_mujoco.mink_ik import TrossenMinkIK
+
+
+# =============================================================================
+# Collision Detection Constants
+# =============================================================================
+
+# Robot geoms that we want to check for collisions
+# These are the collision geoms from teleop_follower_spoon.xml
+ROBOT_COLLISION_GEOMS: Set[str] = {
+    # Spoon collision geom
+    "spoon_col",
+    # Gripper collision geoms
+    "gripper_left_col_1",
+    "gripper_left_col_2",
+    "gripper_left_tip",
+    "gripper_right_col_1",
+    "gripper_right_col_2",
+    "gripper_right_tip",
+    # Arm link collision geoms
+    "link_6_col_1",
+    "link_6_col_2",
+    "camera_col",
+    "link_5_col",
+    "link_4_col",
+    "link_3_col_1",
+    "link_3_col_2",
+    "link_2_col_1",
+    "link_2_col_2",
+    "base_link_col",
+}
+
+# Container collision geoms (from teleop_scene.xml)
+CONTAINER_COLLISION_GEOMS: Set[str] = {
+    "container_bottom",
+    "container_front",
+    "container_back",
+    "container_left",
+    "container_right",
+}
+
+# Bowl collision geoms (32 collision meshes per bowl, invisible)
+# These are named "ramekin_collision_0" through "ramekin_collision_31"
+# but MuJoCo may append suffixes for multiple instances
+BOWL_COLLISION_PREFIXES: List[str] = [
+    f"ramekin_collision_{i}" for i in range(32)
+]
+
+# All obstacle geoms (bowls + container)
+# Note: Bowl geoms may have instance suffixes, so we use prefix matching
+OBSTACLE_COLLISION_GEOMS: Set[str] = CONTAINER_COLLISION_GEOMS.copy()
 
 
 class TaskPhase(Enum):
@@ -429,5 +479,144 @@ class FoodTransferBase:
             info["bowl_dists"][bowl_name] = float(
                 np.linalg.norm(spoon_pos[:2] - bowl_pos[:2])
             )
+
+        return info
+
+    # =========================================================================
+    # Collision Detection Methods
+    # =========================================================================
+
+    def _is_robot_geom(self, geom_name: str) -> bool:
+        """Check if a geom belongs to the robot."""
+        if geom_name is None:
+            return False
+        return geom_name in ROBOT_COLLISION_GEOMS
+
+    def _is_obstacle_geom(self, geom_name: str, geom_id: int) -> bool:
+        """
+        Check if a geom is an obstacle (bowl or container).
+
+        Uses geom name for container and body ID for bowls.
+
+        Args:
+            geom_name: Name of the geom (may be None for unnamed geoms)
+            geom_id: ID of the geom in the model
+        """
+        # Direct match for container geoms by name
+        if geom_name is not None and geom_name in OBSTACLE_COLLISION_GEOMS:
+            return True
+
+        # For bowls, check if the geom's parent body is a bowl
+        # This works even for unnamed geoms
+        body_id = self.model.geom_bodyid[geom_id]
+        body_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, body_id)
+
+        if body_name is not None and body_name.startswith("bowl_"):
+            return True
+
+        return False
+
+    def check_collisions(self) -> List[Tuple[str, str]]:
+        """
+        Check for collisions between robot and obstacles.
+
+        Returns:
+            List of (robot_geom, obstacle_geom/body) collision pairs.
+            Empty list if no collisions.
+        """
+        collisions = []
+
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+
+            # Get geom names and IDs
+            geom1_id = contact.geom1
+            geom2_id = contact.geom2
+            geom1_name = mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_GEOM, geom1_id
+            )
+            geom2_name = mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_GEOM, geom2_id
+            )
+
+            # Check if this is a robot-obstacle collision
+            is_robot1 = self._is_robot_geom(geom1_name)
+            is_robot2 = self._is_robot_geom(geom2_name)
+            is_obstacle1 = self._is_obstacle_geom(geom1_name, geom1_id)
+            is_obstacle2 = self._is_obstacle_geom(geom2_name, geom2_id)
+
+            if is_robot1 and is_obstacle2:
+                # Get obstacle identifier (body name for bowls, geom name for container)
+                obstacle_name = geom2_name
+                if obstacle_name is None:
+                    body_id = self.model.geom_bodyid[geom2_id]
+                    obstacle_name = mujoco.mj_id2name(
+                        self.model, mujoco.mjtObj.mjOBJ_BODY, body_id
+                    )
+                collisions.append((geom1_name, obstacle_name))
+            elif is_robot2 and is_obstacle1:
+                obstacle_name = geom1_name
+                if obstacle_name is None:
+                    body_id = self.model.geom_bodyid[geom1_id]
+                    obstacle_name = mujoco.mj_id2name(
+                        self.model, mujoco.mjtObj.mjOBJ_BODY, body_id
+                    )
+                collisions.append((geom2_name, obstacle_name))
+
+        return collisions
+
+    def has_collision(self) -> bool:
+        """
+        Check if there is any collision between robot and obstacles.
+
+        Returns:
+            True if collision detected, False otherwise.
+        """
+        return len(self.check_collisions()) > 0
+
+    def get_collision_penalty(self, penalty: float = -1.0) -> float:
+        """
+        Get collision penalty for reward calculation.
+
+        Args:
+            penalty: Penalty value to return if collision detected.
+
+        Returns:
+            penalty if collision detected, 0.0 otherwise.
+        """
+        if self.has_collision():
+            return penalty
+        return 0.0
+
+    def get_collision_info(self) -> Dict[str, any]:
+        """
+        Get detailed collision information for debugging.
+
+        Returns:
+            Dictionary with collision details.
+        """
+        collisions = self.check_collisions()
+
+        info = {
+            "has_collision": len(collisions) > 0,
+            "num_collisions": len(collisions),
+            "collision_pairs": collisions,
+            "total_contacts": self.data.ncon,
+        }
+
+        # Categorize collisions by obstacle type
+        bowl_collisions = []
+        container_collisions = []
+
+        for robot_geom, obstacle_name in collisions:
+            if obstacle_name in CONTAINER_COLLISION_GEOMS:
+                container_collisions.append((robot_geom, obstacle_name))
+            elif obstacle_name is not None and obstacle_name.startswith("bowl_"):
+                bowl_collisions.append((robot_geom, obstacle_name))
+            else:
+                bowl_collisions.append((robot_geom, obstacle_name))
+
+        info["bowl_collisions"] = bowl_collisions
+        info["container_collisions"] = container_collisions
 
         return info

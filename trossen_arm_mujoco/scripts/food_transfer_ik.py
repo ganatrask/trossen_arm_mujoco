@@ -173,6 +173,9 @@ def run_food_transfer(
                 print(f"  Actual qpos before move: {np.round(task.data.qpos[:6], 4)}")
 
                 prev_reward = task.get_reward()
+                collision_count = 0
+                collision_reported = False
+
                 for step in range(max(steps, 1)):
                     if not viewer.is_running():
                         break
@@ -188,12 +191,29 @@ def run_food_transfer(
                     viewer.sync()
                     time.sleep(DT)
 
+                    # Check for collisions
+                    collisions = task.check_collisions()
+                    if collisions:
+                        collision_count += 1
+                        if not collision_reported:
+                            # Print first collision details
+                            print(f"  [COLLISION] Robot-obstacle collision detected!")
+                            for robot_geom, obstacle_geom in collisions[:3]:  # Show max 3
+                                print(f"    - {robot_geom} <-> {obstacle_geom}")
+                            if len(collisions) > 3:
+                                print(f"    ... and {len(collisions) - 3} more")
+                            collision_reported = True
+
                     # Check reward and print if changed
                     current_reward = task.get_reward()
                     if current_reward != prev_reward:
                         reward_labels = {0: "No reach", 1: "Container reached", 2: "Bowl reached"}
                         print(f"  [REWARD] {prev_reward} -> {current_reward} ({reward_labels.get(current_reward, '?')})")
                         prev_reward = current_reward
+
+                # Summary of collisions for this phase
+                if collision_count > 0:
+                    print(f"  [COLLISION SUMMARY] {collision_count} steps with collisions in this phase")
 
                 # Update current joints
                 current_joints = target_joints.copy()

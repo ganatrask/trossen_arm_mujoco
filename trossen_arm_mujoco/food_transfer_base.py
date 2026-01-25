@@ -15,12 +15,18 @@ Components:
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import mujoco
 import numpy as np
 
 from trossen_arm_mujoco.mink_ik import TrossenMinkIK
+
+if TYPE_CHECKING:
+    from trossen_arm_mujoco.domain_randomization import (
+        DomainRandomizationConfig,
+        SceneConfiguration,
+    )
 
 
 # =============================================================================
@@ -156,18 +162,34 @@ class FoodTransferBase:
     and phase management. Subclasses add visualization or recording.
     """
 
-    def __init__(self, target: str = "bowl_2", scene_xml: str = "wxai/teleop_scene.xml"):
+    def __init__(
+        self,
+        target: str = "bowl_2",
+        scene_xml: str = "wxai/teleop_scene.xml",
+        dr_config: Optional["DomainRandomizationConfig"] = None,
+    ):
         """
         Initialize food transfer task.
 
         Args:
-            target: Which bowl to target ("bowl_1" to "bowl_4")
+            target: Which bowl to target ("bowl_1" to "bowl_8")
             scene_xml: Path to scene XML file, relative to assets/ directory
                        (e.g., "wxai/teleop_scene.xml" or "wxai/food_scene.xml")
+            dr_config: Optional domain randomization configuration
         """
         self.target = target
         self.scene_xml = scene_xml
         self.config = TaskConfig()
+
+        # Domain randomization
+        self.dr_config = dr_config
+        self.scene_sampler = None
+        self.scene_loader = None
+        self.current_scene_config: Optional["SceneConfiguration"] = None
+
+        # Initialize DR components if enabled
+        if dr_config is not None and dr_config.enabled:
+            self._init_domain_randomization(dr_config)
 
         # Create IK solver
         self.ik = TrossenMinkIK(ee_name="spoon")
@@ -202,13 +224,31 @@ class FoodTransferBase:
 
         self._lookup_object_ids()
 
+        # Initialize scene loader after model is created
+        if dr_config is not None and dr_config.enabled:
+            self._init_scene_loader()
+
+    def _init_domain_randomization(self, dr_config: "DomainRandomizationConfig"):
+        """Initialize domain randomization components."""
+        from trossen_arm_mujoco.domain_randomization import SceneSampler
+        from trossen_arm_mujoco.domain_randomization.config import NOMINAL_POSITIONS
+
+        self.scene_sampler = SceneSampler(dr_config, NOMINAL_POSITIONS)
+
+    def _init_scene_loader(self):
+        """Initialize scene loader after model is created."""
+        from trossen_arm_mujoco.domain_randomization import SceneLoader
+
+        self.scene_loader = SceneLoader(self.model, self.data)
+
     def _lookup_object_ids(self):
         """Look up body IDs for objects."""
         self._container_id = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_BODY, "container"
         )
 
-        for i in range(1, 5):
+        # Look up all possible bowls (1-8 for DR scenes)
+        for i in range(1, 9):
             name = f"bowl_{i}"
             body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
             if body_id >= 0:
@@ -379,10 +419,32 @@ class FoodTransferBase:
         t_smooth = 3 * t**2 - 2 * t**3
         return start_joints + t_smooth * (target_joints - start_joints)
 
-    def reset(self):
-        """Reset simulation and task state."""
-        mujoco.mj_resetData(self.model, self.data)
-        mujoco.mj_forward(self.model, self.data)
+    def reset(self, scene_config: Optional["SceneConfiguration"] = None):
+        """
+        Reset simulation and task state.
+
+        Args:
+            scene_config: Optional scene configuration to apply.
+                         If None and DR is enabled, a new config will be sampled.
+        """
+        # Apply domain randomization if enabled
+        if self.dr_config is not None and self.dr_config.enabled:
+            if scene_config is None and self.scene_sampler is not None:
+                # Sample a new configuration
+                scene_config = self.scene_sampler.sample(target_bowl=self.target)
+
+            if scene_config is not None and self.scene_loader is not None:
+                # Apply the configuration
+                self.scene_loader.apply(scene_config)
+                self.current_scene_config = scene_config
+                # Update target if it was changed by the config
+                if scene_config.target_bowl != self.target:
+                    self.target = scene_config.target_bowl
+        else:
+            # Standard reset without DR
+            mujoco.mj_resetData(self.model, self.data)
+            mujoco.mj_forward(self.model, self.data)
+
         self.phase = TaskPhase.HOME
 
         # Reset reward tracking state
@@ -390,9 +452,27 @@ class FoodTransferBase:
         self._container_enter_step = None
         self._reached_container = False
         self._bowl_enter_step = {
-            name: None for name in DEFAULT_BOWL_POSITIONS.keys()
+            name: None for name in self._bowl_ids.keys()
         }
         self._reached_bowl = False
+
+    def reset_with_seed(self, seed: int) -> "SceneConfiguration":
+        """
+        Reset with a specific random seed for reproducibility.
+
+        Args:
+            seed: Random seed for scene sampling
+
+        Returns:
+            The SceneConfiguration that was applied
+        """
+        if self.scene_sampler is None:
+            raise RuntimeError("Domain randomization not enabled")
+
+        self.scene_sampler.set_seed(seed)
+        scene_config = self.scene_sampler.sample(target_bowl=self.target)
+        self.reset(scene_config)
+        return scene_config
 
     def get_spoon_position(self) -> np.ndarray:
         """Get the current XYZ position of the spoon body."""

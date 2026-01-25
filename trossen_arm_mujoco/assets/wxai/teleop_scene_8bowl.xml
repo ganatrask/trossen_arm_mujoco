@@ -1,0 +1,452 @@
+<mujoco model="wxai base scene with table - 8 bowls">
+  <include file="../food_task/teleop_follower_spoon.xml"/>
+
+  <compiler meshdir="../meshes" texturedir="../"/>
+
+  <statistic center="0 0 0.3" extent="0.8"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.65 0.75" ambient="0.5 0.5 0.6" specular="0.1 0.1 0.1"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global offwidth="1280" offheight="720"/>
+    <quality shadowsize="4096"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.9725 0.9608 0.8706" rgb2="0.5 0.5 0.5" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+
+    <texture name="table_tex" type="cube" builtin="flat" mark="cross" width="127" height="762"
+      rgb1="0.6 0.5 0.4" rgb2="0.6 0.5 0.4" markrgb="1 1 1" random="0.01"/>
+    <material name="table_mat" texture="table_tex" texuniform="true" rgba="0.8 0.7 0.6 1"/>
+
+    <!-- Container material (plastic-like) -->
+    <material name="container_mat" rgba="0.3 0.3 0.35 1" specular="0.3" shininess="0.3"/>
+
+    <texture name="plate_texture" type="2d"
+             file="meshes/plate/texture.png"/>
+    <material name="plate_mat" texture="plate_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="plate_mesh"
+          file="plate/model.obj"/>
+
+    <!-- Threshold Ramekin White Porcelain -->
+    <texture name="threshold_ramekin_texture" type="2d"
+             file="meshes/Threshold_Ramekin_White_Porcelain/texture.png"/>
+    <material name="threshold_ramekin_mat" texture="threshold_ramekin_texture" specular="0.5" shininess="0.5"/>
+    <mesh name="threshold_ramekin_mesh" file="Threshold_Ramekin_White_Porcelain/model.obj"/>
+    
+    <!-- Collision meshes for Threshold Ramekin -->
+    <mesh name="ramekin_collision_0" file="Threshold_Ramekin_White_Porcelain/model_collision_0.obj"/>
+    <mesh name="ramekin_collision_1" file="Threshold_Ramekin_White_Porcelain/model_collision_1.obj"/>
+    <mesh name="ramekin_collision_2" file="Threshold_Ramekin_White_Porcelain/model_collision_2.obj"/>
+    <mesh name="ramekin_collision_3" file="Threshold_Ramekin_White_Porcelain/model_collision_3.obj"/>
+    <mesh name="ramekin_collision_4" file="Threshold_Ramekin_White_Porcelain/model_collision_4.obj"/>
+    <mesh name="ramekin_collision_5" file="Threshold_Ramekin_White_Porcelain/model_collision_5.obj"/>
+    <mesh name="ramekin_collision_6" file="Threshold_Ramekin_White_Porcelain/model_collision_6.obj"/>
+    <mesh name="ramekin_collision_7" file="Threshold_Ramekin_White_Porcelain/model_collision_7.obj"/>
+    <mesh name="ramekin_collision_8" file="Threshold_Ramekin_White_Porcelain/model_collision_8.obj"/>
+    <mesh name="ramekin_collision_9" file="Threshold_Ramekin_White_Porcelain/model_collision_9.obj"/>
+    <mesh name="ramekin_collision_10" file="Threshold_Ramekin_White_Porcelain/model_collision_10.obj"/>
+    <mesh name="ramekin_collision_11" file="Threshold_Ramekin_White_Porcelain/model_collision_11.obj"/>
+    <mesh name="ramekin_collision_12" file="Threshold_Ramekin_White_Porcelain/model_collision_12.obj"/>
+    <mesh name="ramekin_collision_13" file="Threshold_Ramekin_White_Porcelain/model_collision_13.obj"/>
+    <mesh name="ramekin_collision_14" file="Threshold_Ramekin_White_Porcelain/model_collision_14.obj"/>
+    <mesh name="ramekin_collision_15" file="Threshold_Ramekin_White_Porcelain/model_collision_15.obj"/>
+    <mesh name="ramekin_collision_16" file="Threshold_Ramekin_White_Porcelain/model_collision_16.obj"/>
+    <mesh name="ramekin_collision_17" file="Threshold_Ramekin_White_Porcelain/model_collision_17.obj"/>
+    <mesh name="ramekin_collision_18" file="Threshold_Ramekin_White_Porcelain/model_collision_18.obj"/>
+    <mesh name="ramekin_collision_19" file="Threshold_Ramekin_White_Porcelain/model_collision_19.obj"/>
+    <mesh name="ramekin_collision_20" file="Threshold_Ramekin_White_Porcelain/model_collision_20.obj"/>
+    <mesh name="ramekin_collision_21" file="Threshold_Ramekin_White_Porcelain/model_collision_21.obj"/>
+    <mesh name="ramekin_collision_22" file="Threshold_Ramekin_White_Porcelain/model_collision_22.obj"/>
+    <mesh name="ramekin_collision_23" file="Threshold_Ramekin_White_Porcelain/model_collision_23.obj"/>
+    <mesh name="ramekin_collision_24" file="Threshold_Ramekin_White_Porcelain/model_collision_24.obj"/>
+    <mesh name="ramekin_collision_25" file="Threshold_Ramekin_White_Porcelain/model_collision_25.obj"/>
+    <mesh name="ramekin_collision_26" file="Threshold_Ramekin_White_Porcelain/model_collision_26.obj"/>
+    <mesh name="ramekin_collision_27" file="Threshold_Ramekin_White_Porcelain/model_collision_27.obj"/>
+    <mesh name="ramekin_collision_28" file="Threshold_Ramekin_White_Porcelain/model_collision_28.obj"/>
+    <mesh name="ramekin_collision_29" file="Threshold_Ramekin_White_Porcelain/model_collision_29.obj"/>
+    <mesh name="ramekin_collision_30" file="Threshold_Ramekin_White_Porcelain/model_collision_30.obj"/>
+    <mesh name="ramekin_collision_31" file="Threshold_Ramekin_White_Porcelain/model_collision_31.obj"/>
+  </asset>
+
+  <worldbody>
+    <!-- Lights for better visibility -->
+    <light name="top_light" pos="0 0 1.5" dir="0 0 -1" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" directional="false"/>
+    <light name="side_light" pos="0.5 0.5 1.0" dir="-0.5 -0.5 -1" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" directional="false"/>
+   
+    <camera name="main_view" pos="1.020 0.160 1.480" xyaxes="-0.155 0.988 0.000 -0.743 -0.116 0.659"/>
+    <!-- Floor -->
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Table -->
+    <geom name="tabletop" type="box" size="0.8 0.8 0.02" pos="0 0 0.02" material="table_mat"/>
+
+    <!-- Camera positioned to see the entire robot -->
+    <camera name="cam_high" pos="-0.776 -0.127 -0.337" xyaxes="0.032 0.999 0.000 -0.840 0.027 0.542" mode="fixed" fovy="60"/>
+    <camera name="cam_front" pos="-1.339 -0.254 0.229" xyaxes="-0.021 1.000 0.000 -0.625 -0.013 0.781" mode="fixed" fovy="60"/>
+
+    <!-- Container: 12.75" x 10.5" x 4" (325mm x 265mm x 101.6mm) -->
+    <!-- Wall thickness: 5mm = 0.005m -->
+    <body name="container" pos="-0.63 -0.15 0.04" quat="0.7071 0 0 0.7071">
+      <!-- Bottom -->
+      <geom name="container_bottom" type="box" size="0.1625 0.1325 0.0025" pos="0 0 0.0025" material="container_mat" contype="1" conaffinity="1"/>
+      <!-- Front wall (along X, at -Y) -->
+      <geom name="container_front" type="box" size="0.1625 0.0025 0.0508" pos="0 -0.13 0.0558" material="container_mat" contype="1" conaffinity="1"/>
+      <!-- Back wall (along X, at +Y) -->
+      <geom name="container_back" type="box" size="0.1625 0.0025 0.0508" pos="0 0.13 0.0558" material="container_mat" contype="1" conaffinity="1"/>
+      <!-- Left wall (along Y, at -X) -->
+      <geom name="container_left" type="box" size="0.0025 0.1325 0.0508" pos="-0.16 0 0.0558" material="container_mat" contype="1" conaffinity="1"/>
+      <!-- Right wall (along Y, at +X) -->
+      <geom name="container_right" type="box" size="0.0025 0.1325 0.0508" pos="0.16 0 0.0558" material="container_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Plate placed in front of the robot -->
+    <!-- 
+    <body name="plate" pos="-0.05 -0.15 0.04">
+      <geom type="mesh" mesh="plate_mesh" material="plate_mat" contype="1" conaffinity="1"/>
+    </body>
+    -->
+
+    <!-- Bowls - 4 arranged in 2x2 grid on the tray -->
+    <!-- Bowl 1 - near container left bottom corner -->
+    <body name="bowl_1" pos="-0.22 -0.26 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- Bowl 2 - front right -->
+    <body name="bowl_2" pos="-0.36 -0.26 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- Bowl 3 - back left -->
+    <body name="bowl_3" pos="-0.36 -0.12 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- Bowl 4 - back right -->
+    <body name="bowl_4" pos="-0.22 -0.12 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    
+    <!-- bowl_5 -->
+    <body name="bowl_5" pos="-0.50 -0.26 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+    <!-- bowl_6 -->
+    <body name="bowl_6" pos="-0.50 -0.12 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+    <!-- bowl_7 -->
+    <body name="bowl_7" pos="-0.22 +0.02 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+    <!-- bowl_8 -->
+    <body name="bowl_8" pos="-0.36 +0.02 0.04">
+      <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
+      <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_2" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_3" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_4" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_5" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_6" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_7" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_8" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_9" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_10" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_11" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_12" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_13" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_14" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_15" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_16" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_17" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_18" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_19" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_20" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_21" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_22" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_23" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_24" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_25" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_26" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_27" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_28" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_29" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+      <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- White beans (85 total) -->
+  <!--
+    <body name="food_bradshaw_1" pos="-0.05 0.15 0.175">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_2" pos="-0.03 0.15 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.95 0.93 0.88 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_3" pos="-0.07 0.16 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.90 0.88 0.83 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_4" pos="-0.04 0.14 0.183">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_5" pos="-0.06 0.155 0.187">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_6" pos="-0.05 0.14 0.175">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_7" pos="-0.06 0.15 0.18">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.94 0.92 0.87 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_8" pos="-0.04 0.16 0.18">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.93 0.91 0.86 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_9" pos="-0.05 0.155 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.91 0.89 0.84 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="food_bradshaw_10" pos="-0.06 0.14 0.185">
+      <freejoint/>
+      <geom type="sphere" size="0.009" density="800" rgba="0.92 0.90 0.85 1" contype="1" conaffinity="1"/>
+    </body>
+  --> 
+  </worldbody>
+</mujoco>

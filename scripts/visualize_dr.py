@@ -33,9 +33,14 @@ Usage:
 """
 
 import argparse
+import multiprocessing
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Dict, Any, Tuple, Optional
 
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for multiprocessing
 import matplotlib.pyplot as plt
 import mujoco
 import numpy as np
@@ -62,6 +67,9 @@ from trossen_arm_mujoco.domain_randomization.viz_utils import (
     render_scene,
     create_2d_layout_plot,
     yaw_to_quaternion,
+    get_optimal_workers,
+    get_optimal_batch_size,
+    get_available_ram_gb,
 )
 
 
@@ -69,11 +77,143 @@ from trossen_arm_mujoco.domain_randomization.viz_utils import (
 # Mode: preview - Batch generation with grid output
 # =============================================================================
 
+def _render_single_sample(args_tuple: Tuple) -> Dict[str, Any]:
+    """Worker function to render a single DR sample.
+
+    This function is designed to be called by ProcessPoolExecutor.
+    Each worker loads its own MuJoCo model to avoid sharing state.
+
+    Args:
+        args_tuple: Tuple of (sample_idx, dr_config_dict, base_seed)
+
+    Returns:
+        Dict with keys: sample_idx, success, img (or error), num_bowls, target_bowl
+    """
+    sample_idx, dr_config_dict, base_seed = args_tuple
+
+    # Recreate DR config in worker process
+    dr_config = DomainRandomizationConfig.from_cli_args(**dr_config_dict)
+
+    sampler = SceneSampler(dr_config)
+    sampler.set_seed(base_seed + sample_idx)
+
+    try:
+        scene_config = sampler.sample()
+
+        # Load and configure scene (each worker has its own model)
+        model, data = load_scene("wxai/teleop_scene_8bowl.xml")
+        apply_scene_config(model, data, scene_config)
+        hide_inactive_bowls(model, scene_config.active_bowls)
+
+        mujoco.mj_forward(model, data)
+        img = render_scene(model, data, camera_name="main_view")
+
+        return {
+            "sample_idx": sample_idx,
+            "success": True,
+            "img": img,
+            "num_bowls": scene_config.num_bowls,
+            "target_bowl": scene_config.target_bowl,
+        }
+
+    except RuntimeError as e:
+        return {
+            "sample_idx": sample_idx,
+            "success": False,
+            "error": str(e)[:50],
+            "num_bowls": 0,
+            "target_bowl": "",
+        }
+
+
+def _save_grid_image(
+    results: Dict[int, Dict[str, Any]],
+    start_sample: int,
+    end_sample: int,
+    img_idx: int,
+    grid_size: int,
+    num_samples: int,
+    output_dir: Path,
+    randomize_container: bool,
+    allow_90_rotation: bool,
+) -> None:
+    """Save a single grid image from rendered results.
+
+    Args:
+        results: Dict mapping sample_idx to result dict
+        start_sample: First sample index in this grid
+        end_sample: Last sample index (exclusive) in this grid
+        img_idx: Grid image index (0-based)
+        grid_size: Grid size (NxN)
+        num_samples: Total number of samples
+        output_dir: Output directory path
+        randomize_container: Whether container randomization is enabled
+        allow_90_rotation: Whether 90-degree rotation is enabled
+    """
+    samples_per_image = grid_size * grid_size
+    samples_in_image = end_sample - start_sample
+
+    # Create figure
+    fig, axes = plt.subplots(
+        grid_size, grid_size,
+        figsize=(5 * grid_size, 5 * grid_size)
+    )
+    axes = axes.flatten()
+
+    for i in range(samples_per_image):
+        ax = axes[i]
+
+        if i < samples_in_image:
+            current_sample = start_sample + i
+            result = results.get(current_sample)
+
+            if result and result["success"]:
+                ax.imshow(result["img"])
+                ax.set_title(
+                    f"#{current_sample + 1} | {result['num_bowls']} bowls | "
+                    f"{result['target_bowl']}",
+                    fontsize=9
+                )
+                ax.axis('off')
+            else:
+                error_msg = result.get('error', 'Unknown') if result else 'Not rendered'
+                ax.text(0.5, 0.5,
+                       f"FAILED\n#{current_sample + 1}\n{error_msg}",
+                       ha='center', va='center', fontsize=8, color='red')
+                ax.set_facecolor('lightgray')
+                ax.axis('off')
+        else:
+            # Empty cell
+            ax.axis('off')
+
+    # Add title with info
+    title = f"DR Preview - Samples {start_sample + 1}-{end_sample} of {num_samples}"
+    if randomize_container:
+        title += " | Container Randomized"
+    if allow_90_rotation:
+        title += " | 90deg Rotation"
+    plt.suptitle(title, fontsize=14, fontweight='bold')
+
+    plt.tight_layout()
+
+    # Save image
+    output_path = output_dir / f"dr_preview_{img_idx + 1:04d}.png"
+    plt.savefig(output_path, dpi=120, bbox_inches='tight')
+    plt.close(fig)
+
+
 def run_preview_mode(args):
     """Generate DR preview images in grid format.
 
     Creates multiple grid images showing DR samples for visual verification.
     For example: 100 samples -> 12 images (9 samples per image).
+
+    Uses hybrid batch processing to manage memory for large sample counts:
+    - Renders samples in batches
+    - Saves completed grids and frees memory after each batch
+    - Auto-calculates batch size based on 25% of available RAM
+
+    Uses multiprocessing for parallel rendering when --workers > 1.
     """
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -82,27 +222,39 @@ def run_preview_mode(args):
     samples_per_image = args.grid_size * args.grid_size
     num_images = (args.num_samples + samples_per_image - 1) // samples_per_image
 
+    # Determine number of workers
+    num_workers = getattr(args, 'workers', None)
+    if num_workers is None or num_workers <= 0:
+        num_workers = get_optimal_workers()
+
+    # Determine batch size
+    batch_size = getattr(args, 'batch_size', 0)
+    if batch_size <= 0:
+        batch_size = get_optimal_batch_size(args.num_samples)
+
     print(f"Generating {args.num_samples} DR samples...")
     print(f"  - Bowl count: {args.min_bowls}-{args.max_bowls}")
     print(f"  - Container position randomization: {args.randomize_container}")
     print(f"  - 90° rotation: {args.allow_90_rotation}")
     print(f"  - Output: {num_images} images ({args.grid_size}x{args.grid_size} grid)")
     print(f"  - Output directory: {output_dir}")
+    print(f"  - Workers: {num_workers}")
+    print(f"  - Batch size: {batch_size}")
     print()
 
-    # Create DR config
-    dr_config = DomainRandomizationConfig.from_cli_args(
-        enable_dr=True,
-        position_noise=args.position_noise,
-        rotation_noise=0.1,
-        container_rotation=0.15,
-        min_bowls=args.min_bowls,
-        max_bowls=args.max_bowls,
-        seed=args.seed,
-        min_spacing=args.min_spacing,
-        randomize_container_position=args.randomize_container,
-        allow_90_degree_rotation=args.allow_90_rotation,
-    )
+    # Create DR config dict for passing to workers
+    dr_config_dict = {
+        "enable_dr": True,
+        "position_noise": args.position_noise,
+        "rotation_noise": 0.1,
+        "container_rotation": 0.15,
+        "min_bowls": args.min_bowls,
+        "max_bowls": args.max_bowls,
+        "seed": args.seed,
+        "min_spacing": args.min_spacing,
+        "randomize_container_position": args.randomize_container,
+        "allow_90_degree_rotation": args.allow_90_rotation,
+    }
 
     # Track statistics
     stats = {
@@ -112,73 +264,90 @@ def run_preview_mode(args):
         "bowl_counts": {i: 0 for i in range(1, 9)},
     }
 
-    for img_idx in tqdm(range(num_images), desc="Generating images"):
-        # Calculate samples for this image
-        start_sample = img_idx * samples_per_image
-        end_sample = min(start_sample + samples_per_image, args.num_samples)
-        samples_in_image = end_sample - start_sample
+    # Track which grid images have been saved
+    saved_grids = set()
 
-        # Create figure
-        fig, axes = plt.subplots(
-            args.grid_size, args.grid_size,
-            figsize=(5 * args.grid_size, 5 * args.grid_size)
-        )
-        axes = axes.flatten()
+    # Process samples in batches
+    num_batches = (args.num_samples + batch_size - 1) // batch_size
 
-        for i in range(samples_per_image):
-            ax = axes[i]
+    # Results buffer - only holds current batch
+    results = {}
 
-            if i < samples_in_image:
-                current_sample = start_sample + i
-                sampler = SceneSampler(dr_config)
-                sampler.set_seed(args.seed + current_sample)
+    for batch_idx in range(num_batches):
+        batch_start = batch_idx * batch_size
+        batch_end = min(batch_start + batch_size, args.num_samples)
+        batch_samples = batch_end - batch_start
 
-                try:
-                    scene_config = sampler.sample()
+        print(f"\nBatch {batch_idx + 1}/{num_batches}: samples {batch_start + 1}-{batch_end}")
 
-                    # Load and configure scene
-                    model, data = load_scene("wxai/teleop_scene_8bowl.xml")
-                    apply_scene_config(model, data, scene_config)
-                    hide_inactive_bowls(model, scene_config.active_bowls)
+        # Prepare args for this batch
+        sample_args = [
+            (i, dr_config_dict, args.seed) for i in range(batch_start, batch_end)
+        ]
 
-                    mujoco.mj_forward(model, data)
-                    img = render_scene(model, data, camera_name="main_view")
+        # Render batch
+        if num_workers > 1:
+            with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                futures = {
+                    executor.submit(_render_single_sample, arg): arg[0]
+                    for arg in sample_args
+                }
 
-                    ax.imshow(img)
-                    ax.set_title(
-                        f"#{current_sample + 1} | {scene_config.num_bowls} bowls | "
-                        f"{scene_config.target_bowl}",
-                        fontsize=9
-                    )
-                    ax.axis('off')
+                for future in tqdm(as_completed(futures), total=len(futures),
+                                  desc=f"Rendering batch {batch_idx + 1}"):
+                    result = future.result()
+                    results[result["sample_idx"]] = result
+        else:
+            for arg in tqdm(sample_args, desc=f"Rendering batch {batch_idx + 1}"):
+                result = _render_single_sample(arg)
+                results[result["sample_idx"]] = result
 
-                    stats["success"] += 1
-                    stats["bowl_counts"][scene_config.num_bowls] += 1
-
-                except RuntimeError as e:
-                    ax.text(0.5, 0.5, f"FAILED\n#{current_sample + 1}\n{str(e)[:30]}",
-                           ha='center', va='center', fontsize=8, color='red')
-                    ax.set_facecolor('lightgray')
-                    ax.axis('off')
-                    stats["failed"] += 1
+        # Update statistics from this batch
+        for sample_idx in range(batch_start, batch_end):
+            result = results.get(sample_idx)
+            if result and result["success"]:
+                stats["success"] += 1
+                stats["bowl_counts"][result["num_bowls"]] += 1
             else:
-                # Empty cell
-                ax.axis('off')
+                stats["failed"] += 1
 
-        # Add title with info
-        title = f"DR Preview - Samples {start_sample + 1}-{end_sample} of {args.num_samples}"
-        if args.randomize_container:
-            title += " | Container Randomized"
-        if args.allow_90_rotation:
-            title += " | 90deg Rotation"
-        plt.suptitle(title, fontsize=14, fontweight='bold')
+        # Check which grid images can now be completed and saved
+        for img_idx in range(num_images):
+            if img_idx in saved_grids:
+                continue
 
-        plt.tight_layout()
+            grid_start = img_idx * samples_per_image
+            grid_end = min(grid_start + samples_per_image, args.num_samples)
 
-        # Save image
-        output_path = output_dir / f"dr_preview_{img_idx + 1:04d}.png"
-        plt.savefig(output_path, dpi=120, bbox_inches='tight')
-        plt.close(fig)
+            # Check if all samples for this grid are rendered
+            if grid_end <= batch_end:
+                # This grid is complete, save it
+                _save_grid_image(
+                    results=results,
+                    start_sample=grid_start,
+                    end_sample=grid_end,
+                    img_idx=img_idx,
+                    grid_size=args.grid_size,
+                    num_samples=args.num_samples,
+                    output_dir=output_dir,
+                    randomize_container=args.randomize_container,
+                    allow_90_rotation=args.allow_90_rotation,
+                )
+                saved_grids.add(img_idx)
+
+        # Free memory: remove results that are no longer needed
+        # Keep only samples needed for incomplete grids
+        min_needed_sample = args.num_samples  # Default: no samples needed
+        for img_idx in range(num_images):
+            if img_idx not in saved_grids:
+                grid_start = img_idx * samples_per_image
+                min_needed_sample = min(min_needed_sample, grid_start)
+                break
+
+        # Remove samples before min_needed_sample
+        samples_to_remove = [idx for idx in results.keys() if idx < min_needed_sample]
+        for idx in samples_to_remove:
+            del results[idx]
 
     # Print statistics
     print("\n" + "=" * 60)
@@ -210,6 +379,8 @@ def run_preview_mode(args):
         f.write(f"  position_noise: {args.position_noise}\n")
         f.write(f"  min_spacing: {args.min_spacing}\n")
         f.write(f"  seed: {args.seed}\n")
+        f.write(f"  workers: {num_workers}\n")
+        f.write(f"  batch_size: {batch_size}\n")
         f.write(f"\nBowl count distribution:\n")
         for bowls, count in sorted(stats['bowl_counts'].items()):
             if count > 0:
@@ -642,6 +813,10 @@ Examples:
                                help="Allow 0/90 degree container rotation")
     preview_parser.add_argument("--grid_size", type=int, default=3,
                                help="Grid size NxN per image (default: 3)")
+    preview_parser.add_argument("--workers", type=int, default=0,
+                               help="Number of parallel workers (default: auto)")
+    preview_parser.add_argument("--batch_size", type=int, default=0,
+                               help="Samples per batch (default: auto)")
 
     # Compare mode
     compare_parser = subparsers.add_parser(
@@ -699,4 +874,9 @@ Examples:
 
 
 if __name__ == "__main__":
+    # Set spawn method for multiprocessing to avoid issues with MuJoCo/OpenGL
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # Already set
     main()

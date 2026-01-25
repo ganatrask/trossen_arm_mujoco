@@ -78,12 +78,14 @@ HDF5 structure:
 
 import argparse
 import json
+import multiprocessing
 import os
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple
 
 import h5py
 import mujoco
@@ -99,6 +101,7 @@ from trossen_arm_mujoco.food_transfer_base import (
 from trossen_arm_mujoco.domain_randomization import (
     DomainRandomizationConfig,
     SceneConfiguration,
+    get_optimal_workers,
 )
 
 MANIFEST_FILENAME = "manifest.json"
@@ -503,6 +506,152 @@ class FoodTransferRecorder(FoodTransferBase):
         return time.time() - t0
 
 
+def _record_single_episode(args_tuple: Tuple) -> Dict[str, Any]:
+    """Worker function to record a single episode.
+
+    This function is designed to be called by ProcessPoolExecutor.
+    Each worker creates its own FoodTransferRecorder instance.
+
+    Args:
+        args_tuple: Tuple containing all parameters needed to record an episode:
+            (episode_idx, target, episode_seed, recorder_kwargs, speed, enable_dr, all_bowls)
+
+    Returns:
+        Dict with episode data and metadata, or error information if failed
+    """
+    (episode_idx, target, episode_seed, recorder_kwargs, speed, enable_dr, all_bowls) = args_tuple
+
+    try:
+        # Create fresh recorder for this worker
+        recorder = FoodTransferRecorder(**recorder_kwargs)
+
+        scene_config = None
+
+        if enable_dr:
+            # Reset with specific seed - this sets up the randomized scene
+            scene_config = recorder.reset_with_seed(episode_seed)
+            target = str(scene_config.target_bowl)  # Ensure native str
+        else:
+            # Set target without DR
+            recorder.target = target
+
+        # Record episode
+        data_dict, num_timesteps, is_success, env_state = recorder.record_episode(
+            target=target,
+            speed=speed,
+        )
+
+        return {
+            "success": True,
+            "episode_idx": episode_idx,
+            "target": target,
+            "data_dict": data_dict,
+            "num_timesteps": num_timesteps,
+            "is_success": is_success,
+            "env_state": env_state,
+            "scene_config": scene_config,
+            "episode_seed": episode_seed,
+            "valid_cameras": recorder.valid_cameras,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "episode_idx": episode_idx,
+            "error": str(e),
+            "episode_seed": episode_seed,
+        }
+
+
+def _save_episode_from_result(
+    result: Dict[str, Any],
+    output_dir: str,
+    dr_config: Optional[DomainRandomizationConfig],
+) -> Tuple[str, float, bool]:
+    """Save episode data from worker result to HDF5.
+
+    Args:
+        result: Result dict from _record_single_episode
+        output_dir: Directory to save episode files
+        dr_config: Domain randomization config (for metadata)
+
+    Returns:
+        Tuple of (save_path, save_time, is_success)
+    """
+    episode_idx = result["episode_idx"]
+    save_path = os.path.join(output_dir, f"episode_{episode_idx}.hdf5")
+
+    data_dict = result["data_dict"]
+    valid_cameras = result["valid_cameras"]
+    max_timesteps = len(data_dict["/action"])
+
+    # Get dimensions
+    sample_img = data_dict[f"/observations/images/{valid_cameras[0]}"][0]
+    img_height, img_width = sample_img.shape[:2]
+    qpos_dim = data_dict["/observations/qpos"][0].shape[0]
+    qvel_dim = data_dict["/observations/qvel"][0].shape[0]
+    action_dim = data_dict["/action"][0].shape[0]
+
+    t0 = time.time()
+    with h5py.File(save_path, "w", rdcc_nbytes=1024**2 * 2) as root:
+        # Attributes
+        root.attrs["sim"] = True
+        root.attrs["source"] = "food_transfer_ik"
+        root.attrs["target"] = str(result["target"])
+
+        # Domain randomization attributes
+        if dr_config is not None and dr_config.enabled:
+            root.attrs["dr_enabled"] = True
+            if result["episode_seed"] is not None:
+                root.attrs["dr_seed"] = int(result["episode_seed"])
+            scene_config = result.get("scene_config")
+            if scene_config is not None:
+                root.attrs["dr_config"] = scene_config.to_json()
+                root.attrs["num_bowls"] = int(scene_config.num_bowls)
+                active_bowls = [str(b) for b in scene_config.active_bowls]
+                root.attrs["active_bowls"] = json.dumps(active_bowls)
+                root.attrs["scene_xml"] = str(scene_config.scene_xml)
+        else:
+            root.attrs["dr_enabled"] = False
+
+        # Success indicator
+        root.create_dataset("success", data=result["is_success"])
+
+        # Environment state group
+        env_grp = root.create_group("env_state")
+        for key, pose in result["env_state"].items():
+            env_grp.create_dataset(key, data=pose)
+
+        # Observations group
+        obs = root.create_group("observations")
+
+        # Images
+        image_grp = obs.create_group("images")
+        for cam_name in valid_cameras:
+            image_grp.create_dataset(
+                cam_name,
+                (max_timesteps, img_height, img_width, 3),
+                dtype="uint8",
+                chunks=(1, img_height, img_width, 3),
+                compression="gzip",
+                compression_opts=4,
+            )
+
+        # Qpos and qvel
+        obs.create_dataset("qpos", (max_timesteps, qpos_dim), compression="lzf")
+        obs.create_dataset("qvel", (max_timesteps, qvel_dim), compression="lzf")
+
+        # Actions
+        root.create_dataset("action", (max_timesteps, action_dim), compression="lzf")
+
+        # Write data
+        for name, array in data_dict.items():
+            root[name][...] = np.array(array)
+
+    save_time = time.time() - t0
+    return save_path, save_time, result["is_success"]
+
+
 def main(args):
     """Record food transfer IK demonstrations."""
     # Setup output directory
@@ -560,14 +709,23 @@ def main(args):
         manifest = create_manifest(dr_config, starting_seed)
         starting_episode_idx = get_next_episode_index(output_dir) if existing_manifest else 0
 
-    # Create recorder (scene_xml will be overridden by DR if enabled)
-    recorder = FoodTransferRecorder(
-        scene_xml=args.scene,
-        cam_list=cam_list,
-        inject_noise=args.inject_noise,
-        noise_scale=args.noise_scale,
-        dr_config=dr_config,
-    )
+    # Determine number of workers
+    num_workers = getattr(args, 'workers', None)
+    if num_workers is None or num_workers <= 0:
+        num_workers = get_optimal_workers()
+
+    # Create recorder kwargs for workers (serializable parameters)
+    recorder_kwargs = {
+        "scene_xml": args.scene,
+        "cam_list": cam_list,
+        "inject_noise": args.inject_noise,
+        "noise_scale": args.noise_scale,
+        "dr_config": dr_config,
+    }
+
+    # Create a temporary recorder to validate cameras (for display only)
+    temp_recorder = FoodTransferRecorder(**recorder_kwargs)
+    valid_cameras = temp_recorder.valid_cameras
 
     # Determine bowl targets (ignored when DR is enabled - DR controls target)
     cycle_all = (args.target == "all")
@@ -578,6 +736,7 @@ def main(args):
     print(f"Scene: {args.scene}")
     print(f"Output directory: {output_dir}")
     print(f"Number of episodes: {args.num_episodes}")
+    print(f"Workers: {num_workers}")
     if args.enable_dr:
         print(f"Domain Randomization: ENABLED")
         print(f"  Position noise: +/-{args.dr_position_noise*100:.1f}cm")
@@ -591,50 +750,75 @@ def main(args):
     else:
         print(f"Domain Randomization: DISABLED")
         print(f"Target: {'all bowls (cycling)' if cycle_all else args.target}")
-    print(f"Cameras: {recorder.valid_cameras}")
+    print(f"Cameras: {valid_cameras}")
     print(f"Noise injection: {args.inject_noise}")
     if args.inject_noise:
         print(f"Noise scale: {args.noise_scale} rad")
     print()
 
-    results = []
+    # Build list of episode arguments for workers
+    episode_args = []
     current_seed = starting_seed
-
-    for i in tqdm(range(args.num_episodes), desc="Recording episodes"):
+    for i in range(args.num_episodes):
         episode_idx = starting_episode_idx + i
-        episode_seed = None
-        scene_config = None
 
         if args.enable_dr:
-            # Use current seed for this episode
             episode_seed = current_seed
             current_seed += 1
-
-            # Reset with specific seed - this sets up the randomized scene
-            scene_config = recorder.reset_with_seed(episode_seed)
-            target = str(scene_config.target_bowl)  # Ensure native str
+            target = None  # Will be determined by DR in worker
         else:
-            # Determine target bowl without DR
+            episode_seed = None
             if cycle_all:
                 bowl_idx = i % len(ALL_BOWLS)
                 target = ALL_BOWLS[bowl_idx]
             else:
                 target = args.target
-            recorder.target = target
 
-        # Record episode
-        try:
-            data_dict, num_timesteps, is_success, env_state = recorder.record_episode(
-                target=target,
-                speed=args.speed,
-            )
-        except Exception as e:
-            print(f"\nError recording episode {episode_idx}: {e}")
-            is_success = False
-            # Update manifest for failed episode
+        episode_args.append((
+            episode_idx,
+            target,
+            episode_seed,
+            recorder_kwargs,
+            args.speed,
+            args.enable_dr,
+            ALL_BOWLS,
+        ))
+
+    # Record episodes in parallel
+    worker_results = {}
+
+    if num_workers > 1:
+        # Parallel recording
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            futures = {
+                executor.submit(_record_single_episode, arg): arg[0]
+                for arg in episode_args
+            }
+
+            for future in tqdm(as_completed(futures), total=len(futures),
+                              desc="Recording episodes"):
+                result = future.result()
+                worker_results[result["episode_idx"]] = result
+    else:
+        # Sequential recording (for debugging or single-core)
+        for arg in tqdm(episode_args, desc="Recording episodes"):
+            result = _record_single_episode(arg)
+            worker_results[result["episode_idx"]] = result
+
+    # Save episodes and update manifest sequentially (maintains order)
+    print("\nSaving episodes to disk...")
+    results = []
+    for i in tqdm(range(args.num_episodes), desc="Saving episodes"):
+        episode_idx = starting_episode_idx + i
+        result = worker_results[episode_idx]
+
+        if not result["success"]:
+            # Recording failed
+            print(f"\nError recording episode {episode_idx}: {result.get('error', 'Unknown')}")
             if manifest is not None:
                 manifest["total_episodes_attempted"] += 1
                 manifest["failed_episodes"] += 1
+                episode_seed = result.get("episode_seed")
                 manifest["last_seed"] = episode_seed if episode_seed else manifest["last_seed"]
                 if episode_seed is not None:
                     manifest["seed_history"].append(episode_seed)
@@ -642,21 +826,15 @@ def main(args):
                 save_manifest(output_dir, manifest)
             continue
 
-        # Save episode
-        save_path = os.path.join(output_dir, f"episode_{episode_idx}.hdf5")
-        save_time = recorder.save_episode_hdf5(
-            data_dict=data_dict,
-            save_path=save_path,
-            target=target,
-            is_success=is_success,
-            env_state=env_state,
-            scene_config=scene_config,
-            episode_seed=episode_seed,
+        # Save episode to HDF5
+        save_path, save_time, is_success = _save_episode_from_result(
+            result, output_dir, dr_config
         )
 
         # Update manifest
         if manifest is not None:
             manifest["total_episodes_attempted"] += 1
+            episode_seed = result.get("episode_seed")
             if is_success:
                 manifest["successful_episodes"] += 1
             else:
@@ -670,18 +848,18 @@ def main(args):
 
         results.append({
             "episode_idx": episode_idx,
-            "target": target,
-            "timesteps": num_timesteps,
+            "target": result["target"],
+            "timesteps": result["num_timesteps"],
             "save_time": save_time,
             "success": is_success,
-            "seed": episode_seed,
+            "seed": result.get("episode_seed"),
         })
 
         if args.verbose:
             status = "SUCCESS" if is_success else "FAILED"
-            seed_info = f", seed={episode_seed}" if episode_seed else ""
-            print(f"  Episode {episode_idx}: {target}, "
-                  f"{num_timesteps} steps, {status}{seed_info}, saved in {save_time:.1f}s")
+            seed_info = f", seed={result.get('episode_seed')}" if result.get("episode_seed") else ""
+            print(f"  Episode {episode_idx}: {result['target']}, "
+                  f"{result['num_timesteps']} steps, {status}{seed_info}, saved in {save_time:.1f}s")
 
     # Print summary
     print()
@@ -774,6 +952,12 @@ if __name__ == "__main__":
         default="wxai/teleop_scene.xml",
         help="Scene XML file path relative to assets/ (default: wxai/teleop_scene.xml)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="Number of parallel workers (default: auto).",
+    )
 
     # Domain randomization arguments
     dr_group = parser.add_argument_group("Domain Randomization")
@@ -860,5 +1044,12 @@ if __name__ == "__main__":
             output_dir = os.path.join(os.getcwd(), output_dir)
         print_dataset_status(output_dir)
         sys.exit(0)
+
+    # Set spawn method for multiprocessing to avoid issues with MuJoCo/OpenGL
+    # This must be done in __main__ before creating any processes
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # Already set
 
     main(args)

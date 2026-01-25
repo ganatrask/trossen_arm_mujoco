@@ -25,6 +25,9 @@ from .viz_utils import (
     render_scene,
     yaw_to_quaternion,
     create_2d_layout_plot,
+    get_optimal_workers,
+    get_optimal_batch_size,
+    get_available_ram_gb,
 )
 
 __all__ = [
@@ -45,4 +48,7 @@ __all__ = [
     "render_scene",
     "yaw_to_quaternion",
     "create_2d_layout_plot",
+    "get_optimal_workers",
+    "get_optimal_batch_size",
+    "get_available_ram_gb",
 ]

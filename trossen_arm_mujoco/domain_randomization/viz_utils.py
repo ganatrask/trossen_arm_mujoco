@@ -7,8 +7,15 @@ to avoid code duplication.
 
 import mujoco
 import numpy as np
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 
 from .config import (
     NOMINAL_POSITIONS,
@@ -29,6 +36,86 @@ HIDDEN_OBJECT_POSITION = np.array([0.0, 0.0, -10.0])
 DEFAULT_CAMERA = "main_view"
 DEFAULT_WIDTH = 640
 DEFAULT_HEIGHT = 480
+
+
+def get_available_ram_gb() -> float:
+    """Get available RAM in GB.
+
+    Returns:
+        Available RAM in GB (falls back to 4GB if psutil unavailable)
+    """
+    if HAS_PSUTIL:
+        try:
+            return psutil.virtual_memory().available / (1024 ** 3)
+        except Exception:
+            return 4.0
+    return 4.0  # Conservative fallback
+
+
+def get_optimal_batch_size(
+    num_samples: int,
+    image_width: int = DEFAULT_WIDTH,
+    image_height: int = DEFAULT_HEIGHT,
+    ram_fraction: float = 0.25,
+    min_batch: int = 10,
+    max_batch: int = 1000,
+) -> int:
+    """Calculate optimal batch size for rendering based on available RAM.
+
+    Args:
+        num_samples: Total number of samples to render
+        image_width: Image width in pixels (default: 640)
+        image_height: Image height in pixels (default: 480)
+        ram_fraction: Fraction of available RAM to use (default: 0.25)
+        min_batch: Minimum batch size (default: 10)
+        max_batch: Maximum batch size (default: 1000)
+
+    Returns:
+        Optimal batch size capped by num_samples
+    """
+    image_size_mb = (image_width * image_height * 3) / (1024 * 1024)
+    available_ram_gb = get_available_ram_gb()
+    batch_size = int((available_ram_gb * 1024 * ram_fraction) / image_size_mb)
+
+    batch_size = max(min_batch, batch_size)
+    batch_size = min(max_batch, batch_size)
+    batch_size = min(num_samples, batch_size)
+
+    return batch_size
+
+
+def get_optimal_workers(min_workers: int = 1, max_workers: Optional[int] = None) -> int:
+    """Calculate optimal number of worker processes.
+
+    Args:
+        min_workers: Minimum number of workers (default: 1)
+        max_workers: Maximum number of workers (default: None, no limit)
+
+    Returns:
+        Optimal number of worker processes
+    """
+    cpu_count = os.cpu_count() or 4
+
+    if HAS_PSUTIL:
+        try:
+            ram_bytes = psutil.virtual_memory().total
+            ram_gb = ram_bytes / (1024 ** 3)
+        except Exception:
+            ram_gb = 8
+    else:
+        ram_gb = 8
+
+    cpu_based = max(1, cpu_count - 2)
+    ram_based = max(1, int(ram_gb // 4))
+
+    workers = min(cpu_based, ram_based)
+
+    # Apply bounds
+    workers = max(workers, min_workers)
+    if max_workers is not None:
+        workers = min(workers, max_workers)
+
+    return workers
 
 
 def get_body_id(model, name: str) -> int:

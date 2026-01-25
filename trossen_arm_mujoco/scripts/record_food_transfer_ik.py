@@ -468,7 +468,7 @@ class FoodTransferRecorder(FoodTransferBase):
             # Observations group
             obs = root.create_group("observations")
 
-            # Images
+            # Images - use gzip compression (can reduce size by 60-80%)
             image_grp = obs.create_group("images")
             for cam_name in self.valid_cameras:
                 image_grp.create_dataset(
@@ -476,14 +476,25 @@ class FoodTransferRecorder(FoodTransferBase):
                     (max_timesteps, img_height, img_width, 3),
                     dtype="uint8",
                     chunks=(1, img_height, img_width, 3),
+                    compression="gzip",
+                    compression_opts=4,  # 1-9, 4 is good balance of speed/size
                 )
 
-            # Qpos and qvel
-            obs.create_dataset("qpos", (max_timesteps, qpos_dim))
-            obs.create_dataset("qvel", (max_timesteps, qvel_dim))
+            # Qpos and qvel - use lzf compression (fast, good for numeric data)
+            obs.create_dataset(
+                "qpos", (max_timesteps, qpos_dim),
+                compression="lzf",
+            )
+            obs.create_dataset(
+                "qvel", (max_timesteps, qvel_dim),
+                compression="lzf",
+            )
 
-            # Actions
-            root.create_dataset("action", (max_timesteps, action_dim))
+            # Actions - use lzf compression
+            root.create_dataset(
+                "action", (max_timesteps, action_dim),
+                compression="lzf",
+            )
 
             # Write data
             for name, array in data_dict.items():

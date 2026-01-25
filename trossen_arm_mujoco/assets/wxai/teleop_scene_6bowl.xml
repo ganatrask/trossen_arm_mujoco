@@ -260,8 +260,8 @@
     </body>
 
     
-    <!-- bowl_5 -->
-    <body name="bowl_5" pos="-0.50 -0.26 0.04">
+    <!-- bowl_5 - positive Y region (mirror of bowl_4) -->
+    <body name="bowl_5" pos="-0.22 0.12 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
@@ -296,8 +296,8 @@
       <geom type="mesh" mesh="ramekin_collision_30" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_31" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
     </body>
-    <!-- bowl_6 -->
-    <body name="bowl_6" pos="-0.50 -0.12 0.04">
+    <!-- bowl_6 - positive Y region (mirror of bowl_3) -->
+    <body name="bowl_6" pos="-0.36 0.12 0.04">
       <geom type="mesh" mesh="threshold_ramekin_mesh" material="threshold_ramekin_mat" contype="0" conaffinity="0" group="2"/>
       <geom type="mesh" mesh="ramekin_collision_0" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>
       <geom type="mesh" mesh="ramekin_collision_1" contype="1" conaffinity="1" friction="1 0.005 0.0001" rgba="0 0 0 0"/>

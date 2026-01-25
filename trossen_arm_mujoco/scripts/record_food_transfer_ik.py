@@ -527,6 +527,9 @@ def main(args):
             min_bowls=args.dr_min_bowls,
             max_bowls=args.dr_max_bowls,
             seed=args.dr_seed,
+            min_spacing=args.dr_min_spacing,
+            randomize_container_position=args.dr_randomize_container,
+            allow_90_degree_rotation=args.dr_90_degree_rotation,
         )
 
     # Handle manifest for dataset continuation
@@ -581,6 +584,9 @@ def main(args):
         print(f"  Rotation noise: +/-{args.dr_rotation_noise:.2f} rad")
         print(f"  Container rotation: +/-{args.dr_container_rotation:.2f} rad")
         print(f"  Bowl count: {args.dr_min_bowls} to {args.dr_max_bowls}")
+        print(f"  Min object spacing: {args.dr_min_spacing*100:.1f}cm")
+        print(f"  Container position randomization: {'ENABLED' if args.dr_randomize_container else 'DISABLED'}")
+        print(f"  Container 90-degree rotation: {'ENABLED' if args.dr_90_degree_rotation else 'DISABLED'}")
         print(f"  Starting seed: {starting_seed}")
     else:
         print(f"Domain Randomization: DISABLED")
@@ -811,6 +817,25 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Random seed for domain randomization (default: None = auto from manifest or 42).",
+    )
+    dr_group.add_argument(
+        "--dr_min_spacing",
+        type=float,
+        default=0.12,
+        help="Minimum spacing between objects in meters (default: 0.12 = 12cm). "
+             "Bowls are ~10cm diameter, so this prevents overlap.",
+    )
+    dr_group.add_argument(
+        "--dr_randomize_container",
+        action="store_true",
+        help="Enable container position randomization. Container can be placed at "
+             "different locations (left edge, bottom bowl area, or top bowl area).",
+    )
+    dr_group.add_argument(
+        "--dr_90_degree_rotation",
+        action="store_true",
+        help="Enable 90-degree container rotation. Container can be oriented at "
+             "0 or 90 degrees (plus small noise), significantly changing its footprint.",
     )
 
     # Dataset continuation arguments

@@ -124,19 +124,34 @@ class ObjectPoseConfig:
 @dataclass
 class ContainerPoseConfig:
     """
-    Special configuration for container pose randomization.
+    Configuration for container pose randomization.
 
-    Container has asymmetric noise because it's at workspace edge.
-    Only allows movement TOWARD the robot (+X direction).
+    When randomize_position=False (default):
+        Container stays near workspace edge with small noise.
+        Asymmetric X noise ensures reachability.
 
-    Container nominal position is X=-0.63, IK workspace limit is X=-0.6.
-    To ensure reachability, we need at least +0.03 X offset.
+    When randomize_position=True:
+        Container can be placed at any of the predefined slot positions
+        (similar to bowl positions), enabling much more diverse scenes.
+
+    Rotation modes:
+        - allow_90_degree_rotation=False: Small yaw noise around default orientation
+        - allow_90_degree_rotation=True: Container can be rotated 0 or 90 degrees,
+          plus small noise. This significantly changes the container footprint.
     """
+    # Small noise mode (when randomize_position=False)
     position_noise_x_min: float = 0.03  # Minimum +3cm toward robot (required for reachability)
     position_noise_x_max: float = 0.06  # Up to +6cm toward robot
     position_noise_y: float = 0.02  # ±2cm in Y
     position_noise_z: float = 0.005  # ±5mm in Z
-    rotation_noise_yaw: float = 0.15  # ±0.15 rad (~9 degrees)
+    rotation_noise_yaw: float = 0.15  # ±0.15 rad (~9 degrees) noise around base orientation
+
+    # Large position randomization (when randomize_position=True)
+    randomize_position: bool = False  # If True, container can be at any slot position
+    position_noise_xy: float = 0.03  # ±3cm noise when at slot positions
+
+    # 90-degree rotation option
+    allow_90_degree_rotation: bool = False  # If True, container can be 0 or 90 deg rotated
 
 
 @dataclass
@@ -146,10 +161,12 @@ class CollisionConfig:
 
     Attributes:
         min_object_spacing: Minimum distance between object centers (meters)
+                           Ramekin bowls are ~10cm diameter, so this should be >= 0.10
+                           to prevent overlap. Using 0.12 for safety margin.
         max_sample_attempts: Maximum rejection sampling attempts
         workspace_bounds: Dictionary of (min, max) bounds for x, y, z
     """
-    min_object_spacing: float = 0.05  # 5cm between objects
+    min_object_spacing: float = 0.12  # 12cm between object centers (bowls are ~10cm diameter)
     max_sample_attempts: int = 100  # Rejection sampling limit
     workspace_bounds: Dict[str, Tuple[float, float]] = field(default_factory=lambda: {
         "x": (-0.58, 0.1),  # Conservative (actual IK limit is -0.6)
@@ -262,6 +279,9 @@ class DomainRandomizationConfig:
         min_bowls: int = 1,
         max_bowls: int = 8,
         seed: Optional[int] = None,
+        min_spacing: float = 0.12,
+        randomize_container_position: bool = False,
+        allow_90_degree_rotation: bool = False,
     ) -> "DomainRandomizationConfig":
         """Create config from CLI arguments."""
         # Container X noise: min=0.03 (required for reachability), max=0.03+position_noise
@@ -275,10 +295,16 @@ class DomainRandomizationConfig:
                 position_noise_x_max=container_x_max,
                 position_noise_y=position_noise,
                 rotation_noise_yaw=container_rotation,
+                randomize_position=randomize_container_position,
+                position_noise_xy=position_noise,
+                allow_90_degree_rotation=allow_90_degree_rotation,
             ),
             bowl_pose=ObjectPoseConfig(
                 position_noise_xy=position_noise,
                 rotation_noise_yaw=rotation_noise,
+            ),
+            collision=CollisionConfig(
+                min_object_spacing=min_spacing,
             ),
             scene_variant=SceneVariantConfig(
                 min_bowls=min_bowls,
@@ -288,18 +314,67 @@ class DomainRandomizationConfig:
 
 
 # Default nominal positions (from food_transfer_base.py)
+# Robot base is at origin with ~12cm radius + 5cm bowl radius + 3cm margin = 20cm minimum distance
+# So bowl X positions should be <= -0.20 to avoid robot collision
+#
+# Bowl spacing: With ±3cm noise and 12cm min_spacing, nominal distance should be >= 18cm
+# Bottom bowls (1-4): X spacing is 14cm (marginal), Y spacing is 14cm (marginal)
+# Top bowls (5-8): Mirror the bottom layout for consistency
 NOMINAL_POSITIONS = {
     "container": np.array([-0.63, -0.15, 0.04]),
+    # Bottom bowls: 2x2 grid in negative Y region
     "bowl_1": np.array([-0.22, -0.26, 0.04]),
     "bowl_2": np.array([-0.36, -0.26, 0.04]),
     "bowl_3": np.array([-0.36, -0.12, 0.04]),
     "bowl_4": np.array([-0.22, -0.12, 0.04]),
-    # New bowl positions for 6 and 8 bowl scenes
-    "bowl_5": np.array([-0.50, -0.26, 0.04]),
-    "bowl_6": np.array([-0.50, -0.12, 0.04]),
-    "bowl_7": np.array([-0.22, +0.02, 0.04]),
-    "bowl_8": np.array([-0.36, +0.02, 0.04]),
+    # Top bowls: 2x2 grid in positive Y region (mirror of bottom)
+    # Same X positions as bottom bowls for symmetric layout
+    "bowl_5": np.array([-0.22, +0.12, 0.04]),  # Mirror of bowl_4
+    "bowl_6": np.array([-0.36, +0.12, 0.04]),  # Mirror of bowl_3
+    "bowl_7": np.array([-0.22, +0.26, 0.04]),  # Mirror of bowl_1
+    "bowl_8": np.array([-0.36, +0.26, 0.04]),  # Mirror of bowl_2
 }
+
+# Possible container slot positions (where container can be placed when randomize_position=True)
+# Container is ~28cm x 34cm (large!), so it covers multiple bowl positions
+# Container half-dims: half_x=0.14, half_y=0.17 (after default 90-deg rotation)
+#
+# Bowl nominal positions: Y in {-0.26, -0.12, +0.12, +0.26}, X in {-0.22, -0.36}
+# Innermost bowls (3, 6) are at X=-0.36
+# For container to not block bowls: container_X + 0.14 < -0.36 - 0.05 - 0.02
+#   => container_X < -0.57
+# Using X=-0.58 for far-left positions (blocks 0 bowls, allows all 8)
+#
+# Strategy:
+# - Far-left positions (X=-0.58): Block NO bowls, allow 5-8 bowl configurations
+# - Bowl-area positions (X=-0.36): Block 4 bowls each, for 1-4 bowl variety
+#
+# Robot base is at origin with ~12cm radius. Container extends 14cm toward robot.
+# So container center X must be <= -(0.12 + 0.14 + 0.03) = -0.29 minimum to avoid robot.
+CONTAINER_SLOT_POSITIONS = [
+    # Slots 0-2: Far-left positions - block NO bowls (for 5-8 bowl configs)
+    np.array([-0.58, -0.12, 0.04]),  # Slot 0: Far-left, bottom side
+    np.array([-0.58, 0.00, 0.04]),   # Slot 1: Far-left, center
+    np.array([-0.58, +0.12, 0.04]),  # Slot 2: Far-left, top side
+    # Slots 3-4: Bowl-area positions - block 4 bowls each (for variety with 1-4 bowls)
+    np.array([-0.36, -0.22, 0.04]),  # Slot 3: Bottom bowl area -> use top bowls
+    np.array([-0.36, +0.22, 0.04]),  # Slot 4: Top bowl area -> use bottom bowls
+]
+
+# Bowls that are blocked (too close) for each container slot position
+# When container is at a slot, these bowls cannot be used
+CONTAINER_SLOT_BLOCKED_BOWLS = [
+    [],  # Slot 0: Far-left bottom - no bowls blocked
+    [],  # Slot 1: Far-left center - no bowls blocked
+    [],  # Slot 2: Far-left top - no bowls blocked
+    ["bowl_1", "bowl_2", "bowl_3", "bowl_4"],  # Slot 3: Bottom area, blocks bottom bowls
+    ["bowl_5", "bowl_6", "bowl_7", "bowl_8"],  # Slot 4: Top area, blocks top bowls
+]
+
+# Slots that allow all 8 bowls (for 5-8 bowl configurations)
+CONTAINER_SLOTS_FULL_BOWLS = [0, 1, 2]
+# Slots that block some bowls (for variety with fewer bowls)
+CONTAINER_SLOTS_PARTIAL_BOWLS = [3, 4]
 
 # Identity quaternion [w, x, y, z]
 IDENTITY_QUAT = np.array([1.0, 0.0, 0.0, 0.0])

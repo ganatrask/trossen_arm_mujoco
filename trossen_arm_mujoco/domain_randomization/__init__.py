@@ -16,6 +16,16 @@ from .config import (
 )
 from .scene_sampler import SceneSampler
 from .scene_loader import SceneLoader
+from .viz_utils import (
+    ALL_BOWL_NAMES,
+    HIDDEN_OBJECT_POSITION,
+    load_scene,
+    apply_scene_config,
+    hide_inactive_bowls,
+    render_scene,
+    yaw_to_quaternion,
+    create_2d_layout_plot,
+)
 
 __all__ = [
     "DomainRandomizationConfig",
@@ -26,4 +36,13 @@ __all__ = [
     "SceneConfiguration",
     "SceneSampler",
     "SceneLoader",
+    # Visualization utilities
+    "ALL_BOWL_NAMES",
+    "HIDDEN_OBJECT_POSITION",
+    "load_scene",
+    "apply_scene_config",
+    "hide_inactive_bowls",
+    "render_scene",
+    "yaw_to_quaternion",
+    "create_2d_layout_plot",
 ]

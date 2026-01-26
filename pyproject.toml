@@ -24,6 +24,7 @@ dependencies = [
   "mujoco>=3.3.6",
   "qpsolvers[daqp]>=4.3.1",
   "typing_extensions",
+  "huggingface_hub>=0.20.0",
 ]
 
 [build-system]

@@ -796,33 +796,13 @@ def main(args):
             ALL_BOWLS,
         ))
 
-    # Record episodes in parallel
-    worker_results = {}
-
-    if num_workers > 1:
-        # Parallel recording
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = {
-                executor.submit(_record_single_episode, arg): arg[0]
-                for arg in episode_args
-            }
-
-            for future in tqdm(as_completed(futures), total=len(futures),
-                              desc="Recording episodes"):
-                result = future.result()
-                worker_results[result["episode_idx"]] = result
-    else:
-        # Sequential recording (for debugging or single-core)
-        for arg in tqdm(episode_args, desc="Recording episodes"):
-            result = _record_single_episode(arg)
-            worker_results[result["episode_idx"]] = result
-
-    # Save episodes and update manifest sequentially (maintains order)
-    print("\nSaving episodes to disk...")
+    # Record and save episodes - save immediately as each completes to avoid memory buildup
+    # Each episode's data (~1.4GB with images) is saved and freed immediately
     results = []
-    for i in tqdm(range(args.num_episodes), desc="Saving episodes"):
-        episode_idx = starting_episode_idx + i
-        result = worker_results[episode_idx]
+
+    def process_and_save_result(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Process a single result: save to disk and update manifest immediately."""
+        episode_idx = result["episode_idx"]
 
         if not result["success"]:
             # Recording failed
@@ -836,9 +816,9 @@ def main(args):
                     manifest["seed_history"].append(episode_seed)
                     manifest["failed_seeds"].append(episode_seed)
                 save_manifest(output_dir, manifest)
-            continue
+            return None
 
-        # Save episode to HDF5
+        # Save episode to HDF5 immediately
         save_path, save_time, is_success = _save_episode_from_result(
             result, output_dir, dr_config
         )
@@ -858,20 +838,48 @@ def main(args):
                 manifest["seed_history"].append(episode_seed)
             save_manifest(output_dir, manifest)
 
-        results.append({
+        result_summary = {
             "episode_idx": episode_idx,
             "target": result["target"],
             "timesteps": result["num_timesteps"],
             "save_time": save_time,
             "success": is_success,
             "seed": result.get("episode_seed"),
-        })
+        }
 
         if args.verbose:
             status = "SUCCESS" if is_success else "FAILED"
             seed_info = f", seed={result.get('episode_seed')}" if result.get("episode_seed") else ""
             print(f"  Episode {episode_idx}: {result['target']}, "
                   f"{result['num_timesteps']} steps, {status}{seed_info}, saved in {save_time:.1f}s")
+
+        return result_summary
+
+    if num_workers > 1:
+        # Parallel recording with immediate save
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            futures = {
+                executor.submit(_record_single_episode, arg): arg[0]
+                for arg in episode_args
+            }
+
+            for future in tqdm(as_completed(futures), total=len(futures),
+                              desc="Recording & saving episodes"):
+                result = future.result()
+                # Save immediately and free memory
+                result_summary = process_and_save_result(result)
+                if result_summary is not None:
+                    results.append(result_summary)
+                # result goes out of scope here, allowing garbage collection
+    else:
+        # Sequential recording (for debugging or single-core)
+        for arg in tqdm(episode_args, desc="Recording & saving episodes"):
+            result = _record_single_episode(arg)
+            # Save immediately and free memory
+            result_summary = process_and_save_result(result)
+            if result_summary is not None:
+                results.append(result_summary)
+            # result goes out of scope here, allowing garbage collection
 
     # Print summary
     print()

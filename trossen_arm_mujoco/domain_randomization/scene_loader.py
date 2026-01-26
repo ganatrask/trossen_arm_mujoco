@@ -2,14 +2,14 @@
 Scene loader for domain randomization.
 
 This module applies scene configurations to MuJoCo simulations,
-modifying object positions and orientations at runtime.
+modifying object positions, orientations, textures, colors, and lighting at runtime.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import mujoco
 import numpy as np
 
-from .config import ObjectPose, SceneConfiguration
+from .config import ObjectPose, SceneConfiguration, VisualConfiguration
 
 
 class SceneLoader:
@@ -31,7 +31,23 @@ class SceneLoader:
         self.model = model
         self.data = data
         self._body_ids: Dict[str, int] = {}
+        self._material_ids: Dict[str, int] = {}
+        self._texture_ids: Dict[str, int] = {}
+        self._light_ids: Dict[str, int] = {}
+
+        # Store default values for reset
+        self._default_mat_rgba: Dict[int, np.ndarray] = {}
+        self._default_mat_texid: Dict[int, int] = {}
+        self._default_light_pos: Dict[int, np.ndarray] = {}
+        self._default_light_diffuse: Dict[int, np.ndarray] = {}
+        self._default_headlight_diffuse: Optional[np.ndarray] = None
+        self._default_headlight_ambient: Optional[np.ndarray] = None
+
         self._cache_body_ids()
+        self._cache_material_ids()
+        self._cache_texture_ids()
+        self._cache_light_ids()
+        self._store_defaults()
 
     def _cache_body_ids(self) -> None:
         """Cache body IDs for fast lookup."""
@@ -51,12 +67,83 @@ class SceneLoader:
             if bowl_id >= 0:
                 self._body_ids[bowl_name] = bowl_id
 
+    def _cache_material_ids(self) -> None:
+        """Cache material IDs for visual randomization."""
+        material_names = [
+            "table_mat",
+            "groundplane",
+            "container_mat",
+            "threshold_ramekin_mat",
+        ]
+        for name in material_names:
+            mat_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_MATERIAL, name
+            )
+            if mat_id >= 0:
+                self._material_ids[name] = mat_id
+
+    def _cache_texture_ids(self) -> None:
+        """Cache texture IDs for table and floor texture variants."""
+        # Original textures
+        for tex_name in ["table_tex", "groundplane"]:
+            tex_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_TEXTURE, tex_name
+            )
+            if tex_id >= 0:
+                self._texture_ids[tex_name] = tex_id
+
+        # Counter/table textures (counter_tex_0 through counter_tex_99)
+        for i in range(100):
+            tex_name = f"counter_tex_{i}"
+            tex_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_TEXTURE, tex_name
+            )
+            if tex_id >= 0:
+                self._texture_ids[tex_name] = tex_id
+
+        # Floor textures (floor_tex_0 through floor_tex_99)
+        for i in range(100):
+            tex_name = f"floor_tex_{i}"
+            tex_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_TEXTURE, tex_name
+            )
+            if tex_id >= 0:
+                self._texture_ids[tex_name] = tex_id
+
+    def _cache_light_ids(self) -> None:
+        """Cache light IDs for lighting randomization."""
+        light_names = ["top_light", "side_light"]
+        for name in light_names:
+            light_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_LIGHT, name
+            )
+            if light_id >= 0:
+                self._light_ids[name] = light_id
+
+    def _store_defaults(self) -> None:
+        """Store default values for materials and lights for reset."""
+        # Material defaults
+        # mat_texid has shape (nmat, 10) - we store the whole row
+        for name, mat_id in self._material_ids.items():
+            self._default_mat_rgba[mat_id] = self.model.mat_rgba[mat_id].copy()
+            self._default_mat_texid[mat_id] = self.model.mat_texid[mat_id].copy()
+
+        # Light defaults
+        for name, light_id in self._light_ids.items():
+            self._default_light_pos[light_id] = self.model.light_pos[light_id].copy()
+            self._default_light_diffuse[light_id] = self.model.light_diffuse[light_id].copy()
+
+        # Headlight defaults (in visual section)
+        self._default_headlight_diffuse = self.model.vis.headlight.diffuse.copy()
+        self._default_headlight_ambient = self.model.vis.headlight.ambient.copy()
+
     def apply(self, config: SceneConfiguration) -> None:
         """
         Apply scene configuration to simulation.
 
         For static bodies (attached to world), we modify model.body_pos
         and model.body_quat directly, then reset the simulation.
+        Also applies visual configuration if present.
 
         Args:
             config: Scene configuration to apply
@@ -73,9 +160,167 @@ class SceneLoader:
         # Hide inactive bowls (move far below table)
         self._hide_inactive_bowls(config.active_bowls)
 
+        # Apply visual configuration if present
+        if config.visual_config is not None:
+            self._apply_visual_config(config.visual_config)
+
         # Reset simulation to apply changes
         mujoco.mj_resetData(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
+
+    def _apply_visual_config(self, visual: VisualConfiguration) -> None:
+        """
+        Apply visual configuration to model.
+
+        Modifies textures, colors, and lighting parameters.
+
+        Args:
+            visual: Visual configuration to apply
+        """
+        self._apply_table_texture(visual.table_texture_index)
+        self._apply_floor_texture(visual.floor_texture_index)
+        self._apply_container_color(visual.container_color)
+        self._apply_bowl_tints(visual.bowl_tints)
+        self._apply_lighting(visual)
+
+    def _apply_table_texture(self, texture_index: int) -> None:
+        """
+        Swap table material's texture to the specified counter texture.
+
+        Args:
+            texture_index: Index of counter texture (0-99)
+        """
+        mat_id = self._material_ids.get("table_mat")
+        if mat_id is None:
+            return
+
+        tex_name = f"counter_tex_{texture_index}"
+        tex_id = self._texture_ids.get(tex_name)
+        if tex_id is not None:
+            # mat_texid[mat_id] is an array of 10 texture slots
+            # Index 1 is typically used for cube/2d textures on materials
+            # Find the non-negative slot in the default and update that one
+            default_texid = self._default_mat_texid.get(mat_id)
+            if default_texid is not None:
+                for i in range(len(default_texid)):
+                    if default_texid[i] >= 0:
+                        self.model.mat_texid[mat_id, i] = tex_id
+                        break
+
+    def _apply_floor_texture(self, texture_index: int) -> None:
+        """
+        Swap floor material's texture to the specified floor texture.
+
+        Args:
+            texture_index: Index of floor texture (0-99)
+        """
+        mat_id = self._material_ids.get("groundplane")
+        if mat_id is None:
+            return
+
+        tex_name = f"floor_tex_{texture_index}"
+        tex_id = self._texture_ids.get(tex_name)
+        if tex_id is not None:
+            # mat_texid[mat_id] is an array of 10 texture slots
+            # Find the non-negative slot in the default and update that one
+            default_texid = self._default_mat_texid.get(mat_id)
+            if default_texid is not None:
+                for i in range(len(default_texid)):
+                    if default_texid[i] >= 0:
+                        self.model.mat_texid[mat_id, i] = tex_id
+                        break
+
+    def _apply_container_color(self, rgba: Tuple[float, float, float, float]) -> None:
+        """
+        Modify container material color.
+
+        Args:
+            rgba: RGBA color tuple
+        """
+        mat_id = self._material_ids.get("container_mat")
+        if mat_id is None:
+            return
+        self.model.mat_rgba[mat_id] = np.array(rgba)
+
+    def _apply_bowl_tints(
+        self, tints: Dict[str, Tuple[float, float, float, float]]
+    ) -> None:
+        """
+        Apply tint to bowl materials.
+
+        Note: All bowls share the same material (threshold_ramekin_mat).
+        To support per-bowl tints, we average the tints for now.
+        For true per-bowl colors, per-bowl materials would be needed.
+
+        Args:
+            tints: Dictionary mapping bowl names to RGBA tint values
+        """
+        mat_id = self._material_ids.get("threshold_ramekin_mat")
+        if mat_id is None or not tints:
+            return
+
+        # Use average of all bowl tints
+        tint_values = list(tints.values())
+        avg_tint = np.mean([np.array(t) for t in tint_values], axis=0)
+        self.model.mat_rgba[mat_id] = avg_tint
+
+    def _apply_lighting(self, visual: VisualConfiguration) -> None:
+        """
+        Apply lighting configuration to model.
+
+        Args:
+            visual: Visual configuration containing light parameters
+        """
+        # Top light
+        top_light_id = self._light_ids.get("top_light")
+        if top_light_id is not None:
+            self.model.light_pos[top_light_id] = np.array(visual.top_light_pos)
+            self.model.light_diffuse[top_light_id] = np.array(visual.top_light_diffuse)
+
+        # Side light
+        side_light_id = self._light_ids.get("side_light")
+        if side_light_id is not None:
+            self.model.light_pos[side_light_id] = np.array(visual.side_light_pos)
+            self.model.light_diffuse[side_light_id] = np.array(visual.side_light_diffuse)
+
+        # Headlight (in visual section)
+        self.model.vis.headlight.diffuse[:] = np.array(visual.headlight_diffuse)
+        self.model.vis.headlight.ambient[:] = np.array(visual.headlight_ambient)
+
+    def reset_visual_to_defaults(self) -> None:
+        """Reset all visual parameters to default values."""
+        # Reset materials
+        for mat_id, rgba in self._default_mat_rgba.items():
+            self.model.mat_rgba[mat_id] = rgba
+        for mat_id, texid in self._default_mat_texid.items():
+            self.model.mat_texid[mat_id] = texid
+
+        # Reset lights
+        for light_id, pos in self._default_light_pos.items():
+            self.model.light_pos[light_id] = pos
+        for light_id, diffuse in self._default_light_diffuse.items():
+            self.model.light_diffuse[light_id] = diffuse
+
+        # Reset headlight
+        if self._default_headlight_diffuse is not None:
+            self.model.vis.headlight.diffuse[:] = self._default_headlight_diffuse
+        if self._default_headlight_ambient is not None:
+            self.model.vis.headlight.ambient[:] = self._default_headlight_ambient
+
+    @property
+    def available_textures(self) -> Dict[str, int]:
+        """Return dictionary of texture names to IDs that were found."""
+        return dict(self._texture_ids)
+
+    @property
+    def available_materials(self) -> Dict[str, int]:
+        """Return dictionary of material names to IDs that were found."""
+        return dict(self._material_ids)
+
+    @property
+    def available_lights(self) -> Dict[str, int]:
+        """Return dictionary of light names to IDs that were found."""
+        return dict(self._light_ids)
 
     def _set_body_pose(self, body_name: str, pose: ObjectPose) -> None:
         """

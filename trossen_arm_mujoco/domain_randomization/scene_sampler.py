@@ -2,7 +2,7 @@
 Scene sampler for domain randomization.
 
 This module provides collision-aware sampling of scene configurations,
-including object poses and variable bowl counts.
+including object poses, variable bowl counts, and visual randomization.
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -12,6 +12,7 @@ from .config import (
     DomainRandomizationConfig,
     ObjectPose,
     SceneConfiguration,
+    VisualConfiguration,
     NOMINAL_POSITIONS,
     CONTAINER_SLOT_POSITIONS,
     CONTAINER_SLOT_BLOCKED_BOWLS,
@@ -19,6 +20,7 @@ from .config import (
     CONTAINER_SLOTS_PARTIAL_BOWLS,
     IDENTITY_QUAT,
 )
+from .visual_sampler import VisualSampler
 
 
 class SceneSampler:
@@ -47,9 +49,16 @@ class SceneSampler:
         self.rng = np.random.default_rng(config.seed)
         self._current_container_slot = None  # Track which slot is selected
 
+        # Initialize visual sampler if visual DR is enabled
+        self.visual_sampler: Optional[VisualSampler] = None
+        if config.visual is not None and config.visual.enabled:
+            self.visual_sampler = VisualSampler(config.visual)
+
     def set_seed(self, seed: int) -> None:
         """Set random seed for reproducibility."""
         self.rng = np.random.default_rng(seed)
+        if self.visual_sampler is not None:
+            self.visual_sampler.set_seed(seed)
 
     def sample(self, target_bowl: Optional[str] = None) -> SceneConfiguration:
         """
@@ -184,6 +193,12 @@ class SceneSampler:
         # Generate unique seed for this configuration
         config_seed = int(self.rng.integers(0, 2**31))
 
+        # Sample visual configuration if visual DR is enabled
+        visual_config: Optional[VisualConfiguration] = None
+        if self.visual_sampler is not None:
+            self.visual_sampler.set_active_bowls(active_bowls)
+            visual_config = self.visual_sampler.sample()
+
         return SceneConfiguration(
             container_pose=container_pose,
             bowl_poses=bowl_poses,
@@ -192,6 +207,7 @@ class SceneSampler:
             num_bowls=num_bowls,
             scene_xml=scene_xml,
             seed=config_seed,
+            visual_config=visual_config,
         )
 
     def _sample_container_pose(self) -> ObjectPose:

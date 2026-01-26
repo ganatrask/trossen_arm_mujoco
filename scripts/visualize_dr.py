@@ -59,6 +59,7 @@ from trossen_arm_mujoco.domain_randomization.config import (
     SceneConfiguration,
 )
 from trossen_arm_mujoco.domain_randomization.scene_sampler import SceneSampler
+from trossen_arm_mujoco.domain_randomization.scene_loader import SceneLoader
 from trossen_arm_mujoco.domain_randomization.viz_utils import (
     ALL_BOWL_NAMES,
     load_scene,
@@ -102,7 +103,10 @@ def _render_single_sample(args_tuple: Tuple) -> Dict[str, Any]:
 
         # Load and configure scene (each worker has its own model)
         model, data = load_scene("wxai/teleop_scene_8bowl.xml")
-        apply_scene_config(model, data, scene_config)
+
+        # Use SceneLoader to apply both geometric and visual DR
+        loader = SceneLoader(model, data)
+        loader.apply(scene_config)
         hide_inactive_bowls(model, scene_config.active_bowls)
 
         mujoco.mj_forward(model, data)
@@ -114,6 +118,7 @@ def _render_single_sample(args_tuple: Tuple) -> Dict[str, Any]:
             "img": img,
             "num_bowls": scene_config.num_bowls,
             "target_bowl": scene_config.target_bowl,
+            "has_visual_dr": scene_config.visual_config is not None,
         }
 
     except RuntimeError as e:
@@ -232,10 +237,14 @@ def run_preview_mode(args):
     if batch_size <= 0:
         batch_size = get_optimal_batch_size(args.num_samples)
 
+    # Check if visual DR is enabled
+    enable_visual_dr = getattr(args, 'enable_visual_dr', False)
+
     print(f"Generating {args.num_samples} DR samples...")
     print(f"  - Bowl count: {args.min_bowls}-{args.max_bowls}")
     print(f"  - Container position randomization: {args.randomize_container}")
     print(f"  - 90° rotation: {args.allow_90_rotation}")
+    print(f"  - Visual DR: {enable_visual_dr}")
     print(f"  - Output: {num_images} images ({args.grid_size}x{args.grid_size} grid)")
     print(f"  - Output directory: {output_dir}")
     print(f"  - Workers: {num_workers}")
@@ -254,6 +263,18 @@ def run_preview_mode(args):
         "min_spacing": args.min_spacing,
         "randomize_container_position": args.randomize_container,
         "allow_90_degree_rotation": args.allow_90_rotation,
+        # Visual DR arguments
+        "enable_visual_dr": enable_visual_dr,
+        "randomize_table_texture": not getattr(args, 'no_table_texture', False),
+        "num_table_textures": getattr(args, 'num_table_textures', 100),
+        "randomize_floor_texture": not getattr(args, 'no_floor_texture', False),
+        "num_floor_textures": getattr(args, 'num_floor_textures', 100),
+        "randomize_container_color": not getattr(args, 'no_container_color', False),
+        "randomize_bowl_color": getattr(args, 'randomize_bowl_color', False),
+        "randomize_lighting": not getattr(args, 'no_lighting', False),
+        "light_position_noise": getattr(args, 'light_position_noise', 0.3),
+        "light_intensity_min": getattr(args, 'light_intensity_min', 0.5),
+        "light_intensity_max": getattr(args, 'light_intensity_max', 1.2),
     }
 
     # Track statistics
@@ -491,6 +512,9 @@ def run_samples_mode(args):
         axes = np.array([axes])
     axes = axes.flatten()
 
+    # Check if visual DR is enabled
+    enable_visual_dr = getattr(args, 'enable_visual_dr', False)
+
     dr_config = DomainRandomizationConfig.from_cli_args(
         enable_dr=True,
         position_noise=args.position_noise,
@@ -502,6 +526,18 @@ def run_samples_mode(args):
         min_spacing=args.min_spacing,
         randomize_container_position=args.randomize_container,
         allow_90_degree_rotation=args.allow_90_rotation,
+        # Visual DR arguments
+        enable_visual_dr=enable_visual_dr,
+        randomize_table_texture=not getattr(args, 'no_table_texture', False),
+        num_table_textures=getattr(args, 'num_table_textures', 100),
+        randomize_floor_texture=not getattr(args, 'no_floor_texture', False),
+        num_floor_textures=getattr(args, 'num_floor_textures', 100),
+        randomize_container_color=not getattr(args, 'no_container_color', False),
+        randomize_bowl_color=getattr(args, 'randomize_bowl_color', False),
+        randomize_lighting=not getattr(args, 'no_lighting', False),
+        light_position_noise=getattr(args, 'light_position_noise', 0.3),
+        light_intensity_min=getattr(args, 'light_intensity_min', 0.5),
+        light_intensity_max=getattr(args, 'light_intensity_max', 1.2),
     )
 
     for i in range(args.num_samples):
@@ -515,7 +551,10 @@ def run_samples_mode(args):
             if args.render_3d:
                 # Render 3D view
                 model, data = load_scene("wxai/teleop_scene_8bowl.xml")
-                apply_scene_config(model, data, scene_config)
+
+                # Use SceneLoader to apply both geometric and visual DR
+                loader = SceneLoader(model, data)
+                loader.apply(scene_config)
                 hide_inactive_bowls(model, scene_config.active_bowls)
 
                 mujoco.mj_forward(model, data)
@@ -817,6 +856,29 @@ Examples:
                                help="Number of parallel workers (default: auto)")
     preview_parser.add_argument("--batch_size", type=int, default=0,
                                help="Samples per batch (default: auto)")
+    # Visual DR arguments
+    preview_parser.add_argument("--enable_visual_dr", action="store_true",
+                               help="Enable visual domain randomization (textures, colors, lighting)")
+    preview_parser.add_argument("--no_table_texture", action="store_true",
+                               help="Disable table texture randomization")
+    preview_parser.add_argument("--num_table_textures", type=int, default=100,
+                               help="Number of table textures (default: 100)")
+    preview_parser.add_argument("--no_floor_texture", action="store_true",
+                               help="Disable floor texture randomization")
+    preview_parser.add_argument("--num_floor_textures", type=int, default=100,
+                               help="Number of floor textures (default: 100)")
+    preview_parser.add_argument("--no_container_color", action="store_true",
+                               help="Disable container color randomization")
+    preview_parser.add_argument("--randomize_bowl_color", action="store_true",
+                               help="Enable bowl color randomization")
+    preview_parser.add_argument("--no_lighting", action="store_true",
+                               help="Disable lighting randomization")
+    preview_parser.add_argument("--light_position_noise", type=float, default=0.3,
+                               help="Light position noise in meters (default: 0.3)")
+    preview_parser.add_argument("--light_intensity_min", type=float, default=0.5,
+                               help="Min light intensity multiplier (default: 0.5)")
+    preview_parser.add_argument("--light_intensity_max", type=float, default=1.2,
+                               help="Max light intensity multiplier (default: 1.2)")
 
     # Compare mode
     compare_parser = subparsers.add_parser(
@@ -839,6 +901,29 @@ Examples:
                                help="Allow 0/90 degree container rotation")
     samples_parser.add_argument("--render_3d", action="store_true",
                                help="Render 3D views instead of 2D layouts")
+    # Visual DR arguments for samples mode
+    samples_parser.add_argument("--enable_visual_dr", action="store_true",
+                               help="Enable visual domain randomization")
+    samples_parser.add_argument("--no_table_texture", action="store_true",
+                               help="Disable table texture randomization")
+    samples_parser.add_argument("--num_table_textures", type=int, default=100,
+                               help="Number of table textures (default: 100)")
+    samples_parser.add_argument("--no_floor_texture", action="store_true",
+                               help="Disable floor texture randomization")
+    samples_parser.add_argument("--num_floor_textures", type=int, default=100,
+                               help="Number of floor textures (default: 100)")
+    samples_parser.add_argument("--no_container_color", action="store_true",
+                               help="Disable container color randomization")
+    samples_parser.add_argument("--randomize_bowl_color", action="store_true",
+                               help="Enable bowl color randomization")
+    samples_parser.add_argument("--no_lighting", action="store_true",
+                               help="Disable lighting randomization")
+    samples_parser.add_argument("--light_position_noise", type=float, default=0.3,
+                               help="Light position noise (default: 0.3)")
+    samples_parser.add_argument("--light_intensity_min", type=float, default=0.5,
+                               help="Min light intensity (default: 0.5)")
+    samples_parser.add_argument("--light_intensity_max", type=float, default=1.2,
+                               help="Max light intensity (default: 1.2)")
 
     # Variations mode
     variations_parser = subparsers.add_parser(

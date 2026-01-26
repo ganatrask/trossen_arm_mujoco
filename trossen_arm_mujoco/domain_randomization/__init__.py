@@ -2,8 +2,8 @@
 Domain Randomization package for food transfer task.
 
 This package provides domain randomization for sim-to-real transfer,
-including object pose randomization, variable bowl counts, and
-collision-aware scene sampling.
+including object pose randomization, variable bowl counts, collision-aware
+scene sampling, and visual randomization (textures, colors, lighting).
 """
 
 from .config import (
@@ -13,9 +13,16 @@ from .config import (
     SceneVariantConfig,
     ObjectPose,
     SceneConfiguration,
+    # Visual DR configs
+    TextureConfig,
+    ColorConfig,
+    LightingConfig,
+    VisualRandomizationConfig,
+    VisualConfiguration,
 )
 from .scene_sampler import SceneSampler
 from .scene_loader import SceneLoader
+from .visual_sampler import VisualSampler
 from .viz_utils import (
     ALL_BOWL_NAMES,
     HIDDEN_OBJECT_POSITION,
@@ -39,6 +46,13 @@ __all__ = [
     "SceneConfiguration",
     "SceneSampler",
     "SceneLoader",
+    # Visual DR
+    "TextureConfig",
+    "ColorConfig",
+    "LightingConfig",
+    "VisualRandomizationConfig",
+    "VisualConfiguration",
+    "VisualSampler",
     # Visualization utilities
     "ALL_BOWL_NAMES",
     "HIDDEN_OBJECT_POSITION",

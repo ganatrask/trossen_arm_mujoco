@@ -667,9 +667,9 @@ def main(args):
 
     # Setup domain randomization config
     dr_config = None
-    if args.enable_dr:
+    if args.enable_dr or args.enable_visual_dr:
         dr_config = DomainRandomizationConfig.from_cli_args(
-            enable_dr=True,
+            enable_dr=args.enable_dr or args.enable_visual_dr,
             position_noise=args.dr_position_noise,
             rotation_noise=args.dr_rotation_noise,
             container_rotation=args.dr_container_rotation,
@@ -679,6 +679,18 @@ def main(args):
             min_spacing=args.dr_min_spacing,
             randomize_container_position=args.dr_randomize_container,
             allow_90_degree_rotation=args.dr_90_degree_rotation,
+            # Visual DR arguments
+            enable_visual_dr=args.enable_visual_dr,
+            randomize_table_texture=not args.dr_no_table_texture,
+            num_table_textures=args.dr_num_table_textures,
+            randomize_floor_texture=not args.dr_no_floor_texture,
+            num_floor_textures=args.dr_num_floor_textures,
+            randomize_container_color=not args.dr_no_container_color,
+            randomize_bowl_color=args.dr_randomize_bowl_color,
+            randomize_lighting=not args.dr_no_lighting,
+            light_position_noise=args.dr_light_position_noise,
+            light_intensity_min=args.dr_light_intensity_min,
+            light_intensity_max=args.dr_light_intensity_max,
         )
 
     # Handle manifest for dataset continuation
@@ -1020,6 +1032,69 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable 90-degree container rotation. Container can be oriented at "
              "0 or 90 degrees (plus small noise), significantly changing its footprint.",
+    )
+
+    # Visual domain randomization arguments
+    visual_dr_group = parser.add_argument_group("Visual Domain Randomization")
+    visual_dr_group.add_argument(
+        "--enable_visual_dr",
+        action="store_true",
+        help="Enable visual domain randomization (textures, colors, lighting).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_no_table_texture",
+        action="store_true",
+        help="Disable table texture randomization.",
+    )
+    visual_dr_group.add_argument(
+        "--dr_num_table_textures",
+        type=int,
+        default=100,
+        help="Number of table textures to use (default: 100).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_no_floor_texture",
+        action="store_true",
+        help="Disable floor texture randomization.",
+    )
+    visual_dr_group.add_argument(
+        "--dr_num_floor_textures",
+        type=int,
+        default=100,
+        help="Number of floor textures to use (default: 100).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_no_container_color",
+        action="store_true",
+        help="Disable container color randomization.",
+    )
+    visual_dr_group.add_argument(
+        "--dr_randomize_bowl_color",
+        action="store_true",
+        help="Enable bowl color/tint randomization (off by default).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_no_lighting",
+        action="store_true",
+        help="Disable lighting randomization.",
+    )
+    visual_dr_group.add_argument(
+        "--dr_light_position_noise",
+        type=float,
+        default=0.3,
+        help="Light position noise in meters (default: 0.3).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_light_intensity_min",
+        type=float,
+        default=0.5,
+        help="Minimum light intensity multiplier (default: 0.5).",
+    )
+    visual_dr_group.add_argument(
+        "--dr_light_intensity_max",
+        type=float,
+        default=1.2,
+        help="Maximum light intensity multiplier (default: 1.2).",
     )
 
     # Dataset continuation arguments

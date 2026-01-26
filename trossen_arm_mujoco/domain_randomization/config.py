@@ -2,11 +2,12 @@
 Configuration dataclasses for domain randomization.
 
 This module defines all configuration parameters for domain randomization
-including object pose noise, collision constraints, and scene variants.
+including object pose noise, collision constraints, scene variants, and
+visual randomization (textures, colors, lighting).
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import json
 
@@ -52,12 +53,225 @@ class ObjectPose:
         )
 
 
+# =============================================================================
+# Visual Domain Randomization Configuration
+# =============================================================================
+
+@dataclass
+class TextureConfig:
+    """
+    Configuration for texture randomization.
+
+    Attributes:
+        randomize_table: Whether to randomize table/counter texture
+        num_table_textures: Number of table textures available (default: 100)
+        randomize_floor: Whether to randomize floor texture
+        num_floor_textures: Number of floor textures available (default: 100)
+    """
+    randomize_table: bool = True
+    num_table_textures: int = 100  # counter_1.png through counter_100.png
+    randomize_floor: bool = True
+    num_floor_textures: int = 100  # floor_1.png through floor_100.png
+
+
+@dataclass
+class ColorConfig:
+    """
+    Configuration for object color randomization.
+
+    Attributes:
+        randomize_container: Whether to randomize container color
+        container_hue_range: Hue shift range for container (0-1)
+        container_saturation_range: Saturation multiplier range
+        container_value_range: Value/brightness multiplier range
+        randomize_bowls: Whether to randomize bowl material tint
+        bowl_tint_range: RGB tint multiplier range for bowls
+    """
+    randomize_container: bool = True
+    # Container color: base is dark gray (0.3, 0.3, 0.35)
+    # We'll vary around this with RGB noise
+    container_rgb_noise: float = 0.15  # ±0.15 on each RGB channel
+
+    randomize_bowls: bool = False  # Off by default - bowls use texture
+    bowl_tint_range: Tuple[float, float] = (0.85, 1.15)  # RGB multiplier range
+
+
+@dataclass
+class LightingConfig:
+    """
+    Configuration for lighting randomization.
+
+    Attributes:
+        randomize_position: Whether to randomize light positions
+        position_noise: Position noise in meters (applied to XYZ)
+        randomize_intensity: Whether to randomize light intensity
+        intensity_range: Multiplier range for diffuse intensity (min, max)
+        randomize_color: Whether to randomize light color temperature
+        color_temp_range: Color temperature shift range (warm < 1.0 < cool)
+    """
+    randomize_position: bool = True
+    position_noise: float = 0.3  # ±30cm noise on light positions
+
+    randomize_intensity: bool = True
+    intensity_range: Tuple[float, float] = (0.5, 1.2)  # 50-120% of base
+
+    randomize_color: bool = True
+    color_temp_range: Tuple[float, float] = (0.85, 1.15)  # Warm to cool shift
+
+
+@dataclass
+class VisualRandomizationConfig:
+    """
+    Master configuration for visual domain randomization.
+
+    Combines texture, color, and lighting randomization settings.
+    """
+    enabled: bool = False
+    seed: Optional[int] = None
+
+    texture: TextureConfig = field(default_factory=TextureConfig)
+    color: ColorConfig = field(default_factory=ColorConfig)
+    lighting: LightingConfig = field(default_factory=LightingConfig)
+
+    def to_dict(self) -> Dict:
+        """Convert to JSON-serializable dict."""
+        return {
+            "enabled": self.enabled,
+            "seed": self.seed,
+            "texture": {
+                "randomize_table": self.texture.randomize_table,
+                "num_table_textures": self.texture.num_table_textures,
+                "randomize_floor": self.texture.randomize_floor,
+                "num_floor_textures": self.texture.num_floor_textures,
+            },
+            "color": {
+                "randomize_container": self.color.randomize_container,
+                "container_rgb_noise": self.color.container_rgb_noise,
+                "randomize_bowls": self.color.randomize_bowls,
+                "bowl_tint_range": list(self.color.bowl_tint_range),
+            },
+            "lighting": {
+                "randomize_position": self.lighting.randomize_position,
+                "position_noise": self.lighting.position_noise,
+                "randomize_intensity": self.lighting.randomize_intensity,
+                "intensity_range": list(self.lighting.intensity_range),
+                "randomize_color": self.lighting.randomize_color,
+                "color_temp_range": list(self.lighting.color_temp_range),
+            },
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict) -> "VisualRandomizationConfig":
+        """Create from dict."""
+        texture = TextureConfig(
+            randomize_table=d.get("texture", {}).get("randomize_table", True),
+            num_table_textures=d.get("texture", {}).get("num_table_textures", 100),
+            randomize_floor=d.get("texture", {}).get("randomize_floor", True),
+            num_floor_textures=d.get("texture", {}).get("num_floor_textures", 100),
+        )
+        color = ColorConfig(
+            randomize_container=d.get("color", {}).get("randomize_container", True),
+            container_rgb_noise=d.get("color", {}).get("container_rgb_noise", 0.15),
+            randomize_bowls=d.get("color", {}).get("randomize_bowls", False),
+            bowl_tint_range=tuple(d.get("color", {}).get("bowl_tint_range", (0.85, 1.15))),
+        )
+        lighting = LightingConfig(
+            randomize_position=d.get("lighting", {}).get("randomize_position", True),
+            position_noise=d.get("lighting", {}).get("position_noise", 0.3),
+            randomize_intensity=d.get("lighting", {}).get("randomize_intensity", True),
+            intensity_range=tuple(d.get("lighting", {}).get("intensity_range", (0.5, 1.2))),
+            randomize_color=d.get("lighting", {}).get("randomize_color", True),
+            color_temp_range=tuple(d.get("lighting", {}).get("color_temp_range", (0.85, 1.15))),
+        )
+        return cls(
+            enabled=d.get("enabled", False),
+            seed=d.get("seed"),
+            texture=texture,
+            color=color,
+            lighting=lighting,
+        )
+
+
+@dataclass
+class VisualConfiguration:
+    """
+    Complete visual configuration for one episode.
+
+    Stores the sampled visual parameters for reproducibility.
+    """
+    # Texture indices
+    table_texture_index: int  # Which counter texture (0-99)
+    floor_texture_index: int  # Which floor texture (0-99)
+
+    # Colors (RGBA tuples)
+    container_color: Tuple[float, float, float, float]
+    bowl_tints: Dict[str, Tuple[float, float, float, float]]  # bowl_name -> RGBA
+
+    # Lighting state
+    top_light_pos: Tuple[float, float, float]
+    top_light_diffuse: Tuple[float, float, float]
+    side_light_pos: Tuple[float, float, float]
+    side_light_diffuse: Tuple[float, float, float]
+
+    # Headlight (ambient) settings
+    headlight_diffuse: Tuple[float, float, float]
+    headlight_ambient: Tuple[float, float, float]
+
+    seed: int
+
+    def to_dict(self) -> Dict:
+        """Convert to JSON-serializable dict for HDF5 storage."""
+        return {
+            "table_texture_index": int(self.table_texture_index),
+            "floor_texture_index": int(self.floor_texture_index),
+            "container_color": list(self.container_color),
+            "bowl_tints": {k: list(v) for k, v in self.bowl_tints.items()},
+            "top_light_pos": list(self.top_light_pos),
+            "top_light_diffuse": list(self.top_light_diffuse),
+            "side_light_pos": list(self.side_light_pos),
+            "side_light_diffuse": list(self.side_light_diffuse),
+            "headlight_diffuse": list(self.headlight_diffuse),
+            "headlight_ambient": list(self.headlight_ambient),
+            "seed": int(self.seed),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict) -> "VisualConfiguration":
+        """Create from dict."""
+        return cls(
+            table_texture_index=d["table_texture_index"],
+            floor_texture_index=d["floor_texture_index"],
+            container_color=tuple(d["container_color"]),
+            bowl_tints={k: tuple(v) for k, v in d["bowl_tints"].items()},
+            top_light_pos=tuple(d["top_light_pos"]),
+            top_light_diffuse=tuple(d["top_light_diffuse"]),
+            side_light_pos=tuple(d["side_light_pos"]),
+            side_light_diffuse=tuple(d["side_light_diffuse"]),
+            headlight_diffuse=tuple(d["headlight_diffuse"]),
+            headlight_ambient=tuple(d["headlight_ambient"]),
+            seed=d["seed"],
+        )
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_json(cls, s: str) -> "VisualConfiguration":
+        """Deserialize from JSON string."""
+        return cls.from_dict(json.loads(s))
+
+
+# =============================================================================
+# Scene Configuration
+# =============================================================================
+
 @dataclass
 class SceneConfiguration:
     """
     Complete scene configuration for one episode.
 
-    Contains poses for all objects and metadata about the configuration.
+    Contains poses for all objects, metadata, and optional visual configuration.
     """
     container_pose: ObjectPose
     bowl_poses: Dict[str, ObjectPose]  # bowl_name -> pose
@@ -66,12 +280,13 @@ class SceneConfiguration:
     num_bowls: int  # Total number of active bowls
     scene_xml: str  # Which scene XML to use
     seed: int  # Random seed for reproducibility
+    visual_config: Optional[VisualConfiguration] = None  # Visual DR settings
 
     def to_dict(self) -> Dict:
         """Convert to JSON-serializable dict for HDF5 storage."""
         # Ensure active_bowls are plain strings (not numpy strings)
         active_bowls = [str(b) for b in self.active_bowls]
-        return {
+        d = {
             "container_pose": self.container_pose.to_dict(),
             "bowl_poses": {str(k): v.to_dict() for k, v in self.bowl_poses.items()},
             "active_bowls": active_bowls,
@@ -80,10 +295,17 @@ class SceneConfiguration:
             "scene_xml": str(self.scene_xml),
             "seed": int(self.seed),  # Ensure native Python int
         }
+        # Add visual config if present
+        if self.visual_config is not None:
+            d["visual_config"] = self.visual_config.to_dict()
+        return d
 
     @classmethod
     def from_dict(cls, d: Dict) -> "SceneConfiguration":
         """Create from dict."""
+        visual_config = None
+        if "visual_config" in d and d["visual_config"] is not None:
+            visual_config = VisualConfiguration.from_dict(d["visual_config"])
         return cls(
             container_pose=ObjectPose.from_dict(d["container_pose"]),
             bowl_poses={k: ObjectPose.from_dict(v) for k, v in d["bowl_poses"].items()},
@@ -92,6 +314,7 @@ class SceneConfiguration:
             num_bowls=d["num_bowls"],
             scene_xml=d["scene_xml"],
             seed=d["seed"],
+            visual_config=visual_config,
         )
 
     def to_json(self) -> str:
@@ -216,7 +439,8 @@ class DomainRandomizationConfig:
     Master configuration for domain randomization.
 
     This is the main configuration object that controls all aspects
-    of domain randomization for the food transfer task.
+    of domain randomization for the food transfer task, including
+    both geometric (pose) and visual (texture/color/lighting) randomization.
     """
     enabled: bool = True
     seed: Optional[int] = None
@@ -235,9 +459,12 @@ class DomainRandomizationConfig:
     randomize_container: bool = True
     randomize_bowls: bool = True
 
+    # Visual domain randomization
+    visual: VisualRandomizationConfig = field(default_factory=VisualRandomizationConfig)
+
     def to_dict(self) -> Dict:
         """Convert to JSON-serializable dict."""
-        return {
+        d = {
             "enabled": self.enabled,
             "seed": self.seed,
             "container_pose": {
@@ -263,7 +490,9 @@ class DomainRandomizationConfig:
             },
             "randomize_container": self.randomize_container,
             "randomize_bowls": self.randomize_bowls,
+            "visual": self.visual.to_dict(),
         }
+        return d
 
     def to_json(self) -> str:
         """Serialize to JSON string."""
@@ -282,11 +511,47 @@ class DomainRandomizationConfig:
         min_spacing: float = 0.12,
         randomize_container_position: bool = False,
         allow_90_degree_rotation: bool = False,
+        # Visual DR arguments
+        enable_visual_dr: bool = False,
+        randomize_table_texture: bool = True,
+        num_table_textures: int = 100,
+        randomize_floor_texture: bool = True,
+        num_floor_textures: int = 100,
+        randomize_container_color: bool = True,
+        randomize_bowl_color: bool = False,
+        randomize_lighting: bool = True,
+        light_position_noise: float = 0.3,
+        light_intensity_min: float = 0.5,
+        light_intensity_max: float = 1.2,
     ) -> "DomainRandomizationConfig":
         """Create config from CLI arguments."""
         # Container X noise: min=0.03 (required for reachability), max=0.03+position_noise
         container_x_min = 0.03  # Required minimum to reach IK workspace
         container_x_max = container_x_min + position_noise
+
+        # Visual randomization config
+        visual = VisualRandomizationConfig(
+            enabled=enable_visual_dr,
+            seed=seed,
+            texture=TextureConfig(
+                randomize_table=randomize_table_texture,
+                num_table_textures=num_table_textures,
+                randomize_floor=randomize_floor_texture,
+                num_floor_textures=num_floor_textures,
+            ),
+            color=ColorConfig(
+                randomize_container=randomize_container_color,
+                randomize_bowls=randomize_bowl_color,
+            ),
+            lighting=LightingConfig(
+                randomize_position=randomize_lighting,
+                position_noise=light_position_noise,
+                randomize_intensity=randomize_lighting,
+                intensity_range=(light_intensity_min, light_intensity_max),
+                randomize_color=randomize_lighting,
+            ),
+        )
+
         return cls(
             enabled=enable_dr,
             seed=seed,
@@ -310,6 +575,7 @@ class DomainRandomizationConfig:
                 min_bowls=min_bowls,
                 max_bowls=max_bowls,
             ),
+            visual=visual,
         )
 
 

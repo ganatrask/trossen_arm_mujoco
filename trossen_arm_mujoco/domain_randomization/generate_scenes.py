@@ -78,6 +78,32 @@ def generate_scene_xml(num_bowls: int, base_xml_path: Path, output_path: Path):
     print(f"Generated {output_path} with {num_bowls} bowls")
 
 
+def generate_1bowl_scene(base_xml_path: Path, output_path: Path):
+    """Generate a 1-bowl scene by removing bowls 2-4 from base scene."""
+    # Read base XML
+    with open(base_xml_path, 'r') as f:
+        content = f.read()
+
+    # Update model name
+    content = re.sub(
+        r'model="wxai base scene with table"',
+        'model="wxai base scene with table - 1 bowl"',
+        content
+    )
+
+    # Remove bowl_2, bowl_3, bowl_4 body blocks
+    for bowl_num in [2, 3, 4]:
+        # Match the comment and body block for each bowl
+        pattern = rf'\s*<!-- bowl_{bowl_num} -->\s*<body name="bowl_{bowl_num}"[^>]*>.*?</body>'
+        content = re.sub(pattern, '', content, flags=re.DOTALL)
+
+    # Write output
+    with open(output_path, 'w') as f:
+        f.write(content)
+
+    print(f"Generated {output_path} with 1 bowl")
+
+
 def main():
     """Generate all scene variants."""
     assets_dir = Path(__file__).parent.parent / "assets" / "wxai"
@@ -87,7 +113,8 @@ def main():
         print(f"Error: Base XML not found at {base_xml}")
         return
 
-    # Generate 6-bowl and 8-bowl scenes
+    # Generate 1-bowl, 6-bowl and 8-bowl scenes
+    generate_1bowl_scene(base_xml, assets_dir / "teleop_scene_1bowl.xml")
     generate_scene_xml(6, base_xml, assets_dir / "teleop_scene_6bowl.xml")
     generate_scene_xml(8, base_xml, assets_dir / "teleop_scene_8bowl.xml")
 

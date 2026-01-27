@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from trossen_arm_mujoco.constants import START_ARM_POSE
+from trossen_arm_mujoco.food_transfer_base import has_robot_obstacle_collision
 from trossen_arm_mujoco.utils import (
     get_observation_base,
     make_sim_env,
@@ -269,12 +270,13 @@ class FoodTransferTask(TrossenAISingleArmTask):
         Computes the reward based on task progress.
 
         Reward stages:
+            -1: Collision detected (robot hit bowl/container)
             0: No reach (initial state)
-            1: Reached container/bowl (spoon within threshold)
-            2: Reached any bowl and stayed for dwell_time seconds
+            1: Reached container (spoon within threshold + dwell time)
+            2: Reached any bowl (spoon within threshold + dwell time)
 
         :param physics: The MuJoCo physics simulation instance.
-        :return: The computed reward (0, 1, or 2).
+        :return: The computed reward (-1, 0, 1, or 2).
         """
         self._step_count += 1
         spoon_pos = self._get_spoon_position(physics)
@@ -314,6 +316,10 @@ class FoodTransferTask(TrossenAISingleArmTask):
             else:
                 # Left threshold zone, reset dwell timer
                 self._bowl_enter_step[bowl_name] = None
+
+        # Check collision - return -1 if robot hits bowl/container
+        if has_robot_obstacle_collision(physics.model.ptr, physics.data):
+            return -1
 
         # Compute reward
         if self._reached_bowl:

@@ -79,6 +79,50 @@ BOWL_COLLISION_PREFIXES: List[str] = [
 OBSTACLE_COLLISION_GEOMS: Set[str] = CONTAINER_COLLISION_GEOMS.copy()
 
 
+def has_robot_obstacle_collision(model, data) -> bool:
+    """
+    Check if robot collides with any obstacle (bowl or container).
+
+    Standalone utility function that works with both raw MuJoCo and dm_control.
+
+    Args:
+        model: MuJoCo model (mujoco.MjModel or physics.model.ptr)
+        data: MuJoCo data (mujoco.MjData or physics.data)
+
+    Returns:
+        True if collision detected, False otherwise.
+    """
+    for i in range(data.ncon):
+        contact = data.contact[i]
+        geom1_id = contact.geom1
+        geom2_id = contact.geom2
+
+        # Get geom names
+        geom1_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom1_id)
+        geom2_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom2_id)
+
+        # Check if robot geom
+        is_robot1 = geom1_name in ROBOT_COLLISION_GEOMS
+        is_robot2 = geom2_name in ROBOT_COLLISION_GEOMS
+
+        # Check if obstacle geom (container by name, bowl by parent body)
+        def is_obstacle(geom_name, geom_id):
+            if geom_name in CONTAINER_COLLISION_GEOMS:
+                return True
+            # Check if parent body is a bowl
+            body_id = model.geom_bodyid[geom_id]
+            body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id)
+            return body_name is not None and body_name.startswith("bowl_")
+
+        is_obstacle1 = is_obstacle(geom1_name, geom1_id)
+        is_obstacle2 = is_obstacle(geom2_name, geom2_id)
+
+        if (is_robot1 and is_obstacle2) or (is_robot2 and is_obstacle1):
+            return True
+
+    return False
+
+
 class TaskPhase(Enum):
     """Task phases for food transfer."""
     HOME = auto()

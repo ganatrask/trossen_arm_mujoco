@@ -20,7 +20,7 @@
 
     <texture name="table_tex" type="cube" builtin="flat" mark="cross" width="127" height="762"
       rgb1="0.6 0.5 0.4" rgb2="0.6 0.5 0.4" markrgb="1 1 1" random="0.01"/>
-    <material name="table_mat" texture="table_tex" texuniform="true" rgba="0.8 0.7 0.6 1"/>
+    <material name="table_mat" texture="table_tex" texuniform="true" texrepeat="2 2" rgba="0.8 0.7 0.6 1"/>
 
     <!-- Counter/table textures for domain randomization (100 total) -->
     <texture name="counter_tex_0" type="2d" file="../domain_randomization/assets/counter/counter_1.png"/>

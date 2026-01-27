@@ -417,3 +417,155 @@ class SceneLoader:
     def available_bodies(self) -> list:
         """Return list of body names that were found in the model."""
         return list(self._body_ids.keys())
+
+    def validate_visual_dr_assets(
+        self,
+        num_table_textures: int = 100,
+        num_floor_textures: int = 100,
+    ) -> None:
+        """
+        Validate that all required visual DR assets are loaded.
+
+        Raises an error if textures are missing, preventing silent failures
+        where visual DR appears to work but actually does nothing.
+
+        Args:
+            num_table_textures: Expected number of table/counter textures
+            num_floor_textures: Expected number of floor textures
+
+        Raises:
+            RuntimeError: If required textures are missing
+        """
+        errors = []
+
+        # Check counter/table textures
+        counter_textures_found = sum(
+            1 for i in range(num_table_textures)
+            if f"counter_tex_{i}" in self._texture_ids
+        )
+        if counter_textures_found == 0:
+            errors.append(
+                f"No counter/table textures found (expected {num_table_textures}). "
+                f"Check that texture files exist at the path specified in the scene XML. "
+                f"The XML references '../domain_randomization/assets/counter/' - "
+                f"ensure this path resolves correctly from the scene file location."
+            )
+        elif counter_textures_found < num_table_textures:
+            errors.append(
+                f"Only {counter_textures_found}/{num_table_textures} counter textures found. "
+                f"Some texture files may be missing."
+            )
+
+        # Check floor textures
+        floor_textures_found = sum(
+            1 for i in range(num_floor_textures)
+            if f"floor_tex_{i}" in self._texture_ids
+        )
+        if floor_textures_found == 0:
+            errors.append(
+                f"No floor textures found (expected {num_floor_textures}). "
+                f"Check that texture files exist at the path specified in the scene XML. "
+                f"The XML references '../domain_randomization/assets/floor/' - "
+                f"ensure this path resolves correctly from the scene file location."
+            )
+        elif floor_textures_found < num_floor_textures:
+            errors.append(
+                f"Only {floor_textures_found}/{num_floor_textures} floor textures found. "
+                f"Some texture files may be missing."
+            )
+
+        # Additional check: verify texture data is non-trivial
+        # MuJoCo may create texture IDs even if files don't exist, but the
+        # textures will have minimal size. Check a sample texture's dimensions.
+        if counter_textures_found > 0:
+            sample_tex_name = "counter_tex_0"
+            tex_id = self._texture_ids.get(sample_tex_name)
+            if tex_id is not None:
+                # Check texture dimensions - empty/failed textures have tiny sizes
+                tex_width = self.model.tex_width[tex_id]
+                tex_height = self.model.tex_height[tex_id]
+                if tex_width < 64 or tex_height < 64:
+                    errors.append(
+                        f"Counter texture '{sample_tex_name}' has invalid dimensions "
+                        f"({tex_width}x{tex_height}). The texture file may not have "
+                        f"loaded correctly. Check that the texture files exist at the "
+                        f"correct path."
+                    )
+
+        if floor_textures_found > 0:
+            sample_tex_name = "floor_tex_0"
+            tex_id = self._texture_ids.get(sample_tex_name)
+            if tex_id is not None:
+                tex_width = self.model.tex_width[tex_id]
+                tex_height = self.model.tex_height[tex_id]
+                if tex_width < 64 or tex_height < 64:
+                    errors.append(
+                        f"Floor texture '{sample_tex_name}' has invalid dimensions "
+                        f"({tex_width}x{tex_height}). The texture file may not have "
+                        f"loaded correctly. Check that the texture files exist at the "
+                        f"correct path."
+                    )
+
+        # Check required materials
+        required_materials = ["table_mat", "groundplane", "container_mat"]
+        missing_materials = [
+            m for m in required_materials if m not in self._material_ids
+        ]
+        if missing_materials:
+            errors.append(
+                f"Missing required materials: {missing_materials}. "
+                f"Check that the scene XML defines these materials."
+            )
+
+        # Check lights
+        required_lights = ["top_light", "side_light"]
+        missing_lights = [l for l in required_lights if l not in self._light_ids]
+        if missing_lights:
+            errors.append(
+                f"Missing required lights: {missing_lights}. "
+                f"Lighting randomization will not work correctly."
+            )
+
+        if errors:
+            error_msg = (
+                "\n" + "=" * 70 + "\n"
+                "VISUAL DOMAIN RANDOMIZATION VALIDATION FAILED\n"
+                "=" * 70 + "\n\n"
+                "The following issues were detected:\n\n"
+            )
+            for i, err in enumerate(errors, 1):
+                error_msg += f"{i}. {err}\n\n"
+            error_msg += (
+                "This validation prevents generating datasets with missing visual DR.\n"
+                "To fix texture path issues, you may need to create a symlink:\n\n"
+                "  mkdir -p <project>/trossen_arm_mujoco/assets/domain_randomization\n"
+                "  ln -s ../../domain_randomization/assets \\\n"
+                "        <project>/trossen_arm_mujoco/assets/domain_randomization/assets\n\n"
+                "Or update the texture paths in the scene XML files.\n"
+                "=" * 70
+            )
+            raise RuntimeError(error_msg)
+
+    def get_visual_dr_status(self) -> dict:
+        """
+        Get status of visual DR assets for diagnostics.
+
+        Returns:
+            Dictionary with counts and status of visual DR components
+        """
+        counter_count = sum(
+            1 for k in self._texture_ids if k.startswith("counter_tex_")
+        )
+        floor_count = sum(
+            1 for k in self._texture_ids if k.startswith("floor_tex_")
+        )
+
+        return {
+            "counter_textures": counter_count,
+            "floor_textures": floor_count,
+            "materials": list(self._material_ids.keys()),
+            "lights": list(self._light_ids.keys()),
+            "table_mat_found": "table_mat" in self._material_ids,
+            "groundplane_found": "groundplane" in self._material_ids,
+            "container_mat_found": "container_mat" in self._material_ids,
+        }

@@ -236,6 +236,16 @@ class FoodTransferRecorder(FoodTransferBase):
             else:
                 print(f"Warning: Camera '{cam_name}' not found in model")
 
+    def recreate_renderer(self) -> None:
+        """
+        Recreate the renderer to pick up texture changes.
+
+        MuJoCo caches textures in the GPU, so after changing mat_texid
+        we need to create a new renderer for changes to be visible.
+        """
+        del self.renderer
+        self.renderer = mujoco.Renderer(self.model, self.img_height, self.img_width)
+
     def render_cameras(self) -> Dict[str, np.ndarray]:
         """Render all cameras and return images."""
         images = {}
@@ -365,7 +375,7 @@ class FoodTransferRecorder(FoodTransferBase):
 
                 # Apply action to simulation
                 self.data.qpos[:6] = q
-                self.data.ctrl[:6] = q
+                self.data.ctrl[:6] = q  
                 mujoco.mj_step(self.model, self.data)
 
                 # Check for collisions after physics step
@@ -531,6 +541,9 @@ def _record_single_episode(args_tuple: Tuple) -> Dict[str, Any]:
             # Reset with specific seed - this sets up the randomized scene
             scene_config = recorder.reset_with_seed(episode_seed)
             target = str(scene_config.target_bowl)  # Ensure native str
+            # Recreate renderer to pick up texture changes from visual DR
+            # MuJoCo caches textures in GPU, so we need fresh renderer
+            recorder.recreate_renderer()
         else:
             # Set target without DR
             recorder.target = target
@@ -738,6 +751,24 @@ def main(args):
     # Create a temporary recorder to validate cameras (for display only)
     temp_recorder = FoodTransferRecorder(**recorder_kwargs)
     valid_cameras = temp_recorder.valid_cameras
+
+    # Validate visual DR assets if enabled (fail fast!)
+    if args.enable_visual_dr:
+        print("Validating visual domain randomization assets...")
+        from trossen_arm_mujoco.domain_randomization.scene_loader import SceneLoader
+        loader = SceneLoader(temp_recorder.model, temp_recorder.data)
+        status = loader.get_visual_dr_status()
+        print(f"  Counter textures found: {status['counter_textures']}")
+        print(f"  Floor textures found: {status['floor_textures']}")
+        print(f"  Materials: {status['materials']}")
+        print(f"  Lights: {status['lights']}")
+        # This will raise RuntimeError if assets are missing
+        loader.validate_visual_dr_assets(
+            num_table_textures=args.dr_num_table_textures,
+            num_floor_textures=args.dr_num_floor_textures,
+        )
+        print("  Visual DR validation PASSED")
+        print()
 
     # Determine bowl targets (ignored when DR is enabled - DR controls target)
     cycle_all = (args.target == "all")

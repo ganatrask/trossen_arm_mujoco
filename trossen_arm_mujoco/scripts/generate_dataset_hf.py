@@ -119,6 +119,10 @@ class PipelineConfig:
     noise_scale: float = 0.02
     speed: float = 1.0
 
+    # Batch/episode numbering
+    start_batch: int = 0  # Starting batch number for naming (batch_000, batch_001, ...)
+    start_episode: int = 0  # Starting episode number for naming (episode_0, episode_1, ...)
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -270,18 +274,27 @@ class DatasetPipeline:
 
         print(f"Total batches: {num_batches}")
         print(f"Starting from batch: {start_batch}")
+        if self.config.start_batch > 0:
+            print(f"HF batch naming starts at: batch_{self.config.start_batch:03d}")
+        if self.config.start_episode > 0:
+            print(f"Episode naming starts at: episode_{self.config.start_episode}")
         print()
 
         # Main loop
         for batch_num in range(start_batch, num_batches):
+            hf_batch_num = batch_num + self.config.start_batch
             print(f"\n{'='*70}")
-            print(f"BATCH {batch_num + 1}/{num_batches}")
+            print(f"BATCH {batch_num + 1}/{num_batches} (batch_{hf_batch_num:03d} in HF)")
             print(f"{'='*70}")
 
             # Calculate episode range for this batch
-            start_ep = batch_num * self.config.batch_size
-            end_ep = min(start_ep + self.config.batch_size, self.config.num_episodes)
-            num_episodes_in_batch = end_ep - start_ep
+            # Local indices (0-based within this run)
+            local_start_ep = batch_num * self.config.batch_size
+            local_end_ep = min(local_start_ep + self.config.batch_size, self.config.num_episodes)
+            num_episodes_in_batch = local_end_ep - local_start_ep
+            # Global indices (offset by start_episode for file naming)
+            start_ep = local_start_ep + self.config.start_episode
+            end_ep = local_end_ep + self.config.start_episode
 
             # Record batch
             print(f"\n[1/3] Recording episodes {start_ep} to {end_ep - 1}...")
@@ -362,13 +375,15 @@ class DatasetPipeline:
         }
 
         # Build episode arguments
+        # DR is enabled if either geometric or visual DR is requested
+        dr_enabled = self.config.enable_dr or self.config.enable_visual_dr
         episode_args = []
         for i in range(num_episodes):
             episode_idx = start_ep + i
             episode_seed = self.state.current_seed
             self.state.current_seed += 1
 
-            if self.config.enable_dr:
+            if dr_enabled:
                 target = None  # DR will determine target
             else:
                 target = ALL_BOWLS[i % len(ALL_BOWLS)]
@@ -379,7 +394,7 @@ class DatasetPipeline:
                 episode_seed,
                 recorder_kwargs,
                 self.config.speed,
-                self.config.enable_dr,
+                dr_enabled,  # Pass combined DR flag
                 ALL_BOWLS,
             ))
 
@@ -488,7 +503,9 @@ class DatasetPipeline:
     def _upload_batch(self, batch_num: int) -> bool:
         """Upload a batch to HuggingFace."""
         batch_dir = self.batch_processor.get_batch_dir(batch_num)
-        path_in_repo = f"data/batch_{batch_num:03d}"
+        # Use start_batch offset for naming in HF repo
+        hf_batch_num = batch_num + self.config.start_batch
+        path_in_repo = f"data/batch_{hf_batch_num:03d}"
 
         return self.uploader.upload_batch(
             str(batch_dir),
@@ -787,6 +804,22 @@ def main():
     visual_dr_group.add_argument("--dr_light_intensity_min", type=float, default=0.5)
     visual_dr_group.add_argument("--dr_light_intensity_max", type=float, default=1.2)
 
+    # Batch/episode numbering
+    parser.add_argument(
+        "--start_batch",
+        type=int,
+        default=0,
+        help="Starting batch number for naming (batch_000, batch_001, ...). "
+             "Use this when extending an existing dataset to avoid overwriting batches.",
+    )
+    parser.add_argument(
+        "--start_episode",
+        type=int,
+        default=0,
+        help="Starting episode number for naming (episode_0, episode_1, ...). "
+             "Use this when extending an existing dataset to continue numbering.",
+    )
+
     args = parser.parse_args()
 
     # Handle --status
@@ -848,6 +881,8 @@ def main():
             inject_noise=args.inject_noise,
             noise_scale=args.noise_scale,
             speed=args.speed,
+            start_batch=args.start_batch,
+            start_episode=args.start_episode,
         )
 
     # Set multiprocessing start method

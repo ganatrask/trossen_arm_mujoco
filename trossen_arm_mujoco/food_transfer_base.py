@@ -211,6 +211,9 @@ class FoodTransferBase:
         target: str = "bowl_2",
         scene_xml: str = "wxai/teleop_scene.xml",
         dr_config: Optional["DomainRandomizationConfig"] = None,
+        model: Optional["mujoco.MjModel"] = None,
+        data: Optional["mujoco.MjData"] = None,
+        skip_ik: bool = False,
     ):
         """
         Initialize food transfer task.
@@ -220,6 +223,11 @@ class FoodTransferBase:
             scene_xml: Path to scene XML file, relative to assets/ directory
                        (e.g., "wxai/teleop_scene.xml" or "wxai/food_scene.xml")
             dr_config: Optional domain randomization configuration
+            model: Optional external MuJoCo model (for dm_control integration).
+                   If provided, scene_xml is ignored.
+            data: Optional external MuJoCo data (for dm_control integration).
+                  Must be provided if model is provided.
+            skip_ik: If True, skip IK solver initialization (for reward-only usage)
         """
         self.target = target
         self.scene_xml = scene_xml
@@ -235,15 +243,24 @@ class FoodTransferBase:
         if dr_config is not None and dr_config.enabled:
             self._init_domain_randomization(dr_config)
 
-        # Create IK solver
-        self.ik = TrossenMinkIK(ee_name="spoon")
+        # Create IK solver (optional - skip for reward-only usage)
+        self.ik = None
+        if not skip_ik:
+            self.ik = TrossenMinkIK(ee_name="spoon")
 
-        # Create model/data for simulation
-        assets_dir = Path(__file__).parent / "assets"
-        model_path = assets_dir / scene_xml
-        self.model = mujoco.MjModel.from_xml_path(str(model_path))
-        self.data = mujoco.MjData(self.model)
-        mujoco.mj_forward(self.model, self.data)
+        # Use external model/data if provided, otherwise create our own
+        if model is not None and data is not None:
+            self.model = model
+            self.data = data
+            self._owns_physics = False
+        else:
+            # Create model/data for simulation
+            assets_dir = Path(__file__).parent / "assets"
+            model_path = assets_dir / scene_xml
+            self.model = mujoco.MjModel.from_xml_path(str(model_path))
+            self.data = mujoco.MjData(self.model)
+            mujoco.mj_forward(self.model, self.data)
+            self._owns_physics = True
 
         # Object body IDs (will be looked up)
         self._container_id: Optional[int] = None
@@ -383,7 +400,15 @@ class FoodTransferBase:
 
         Returns:
             Target joint configuration
+
+        Raises:
+            RuntimeError: If IK solver was not initialized (skip_ik=True)
         """
+        if self.ik is None:
+            raise RuntimeError(
+                "IK solver not initialized. Set skip_ik=False to use solve_for_phase()."
+            )
+
         target_pos = self.compute_target_for_phase(phase)
 
         if target_pos is None:
@@ -523,19 +548,29 @@ class FoodTransferBase:
         spoon_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "spoon")
         return self.data.xpos[spoon_id].copy()
 
-    def get_reward(self) -> int:
+    def get_reward(self, check_collision: bool = True) -> int:
         """
         Computes the reward based on task progress.
 
         Reward stages:
+            -1: Collision detected (robot hit bowl/container)
             0: No reach (initial state)
             1: Reached container/bowl (spoon within threshold)
             2: Reached target bowl and stayed for dwell_time seconds
 
+        Args:
+            check_collision: If True, check for collisions and return -1 if detected.
+                            Set to False if collision is checked externally.
+
         Returns:
-            The computed reward (0, 1, or 2).
+            The computed reward (-1, 0, 1, or 2).
         """
         self._step_count += 1
+
+        # Check collision first - return -1 if robot hits bowl/container
+        if check_collision and self.has_collision():
+            return -1
+
         spoon_pos = self.get_spoon_position()
         dwell_steps = int(self.config.dwell_time * self._steps_per_second)
 

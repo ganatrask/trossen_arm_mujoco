@@ -207,7 +207,7 @@ def run_food_transfer(
                     # Check reward and print if changed
                     current_reward = task.get_reward()
                     if current_reward != prev_reward:
-                        reward_labels = {0: "No reach", 1: "Container reached", 2: "Bowl reached"}
+                        reward_labels = {-1: "Collision", 0: "No reach", 1: "Container reached", 2: "Bowl reached"}
                         print(f"  [REWARD] {prev_reward} -> {current_reward} ({reward_labels.get(current_reward, '?')})")
                         prev_reward = current_reward
 
@@ -272,7 +272,7 @@ def run_food_transfer(
 
             if task.phase == TaskPhase.DONE:
                 final_reward = task.get_reward()
-                reward_labels = {0: "No reach", 1: "Container reached", 2: "Bowl reached"}
+                reward_labels = {-1: "Collision", 0: "No reach", 1: "Container reached", 2: "Bowl reached"}
                 success = "SUCCESS" if final_reward == task.max_reward else "INCOMPLETE"
                 print(f"\nTransfer complete! Final reward: {final_reward}/{task.max_reward} ({reward_labels.get(final_reward, '?')}) [{success}]")
                 loop += 1

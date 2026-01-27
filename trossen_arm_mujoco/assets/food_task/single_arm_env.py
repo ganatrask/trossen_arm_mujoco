@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from trossen_arm_mujoco.constants import START_ARM_POSE
-from trossen_arm_mujoco.food_transfer_base import has_robot_obstacle_collision
+from trossen_arm_mujoco.food_transfer_base import FoodTransferBase
 from trossen_arm_mujoco.utils import (
     get_observation_base,
     make_sim_env,
@@ -185,11 +185,18 @@ class FoodTransferTask(TrossenAISingleArmTask):
     Food transfer task with distance-based rewards for scooping from container
     and transferring to a target bowl.
 
-    Reward stages:
-        0: No reach (initial state)
-        1: Reached container/bowl (spoon within threshold)
-        2: Reached any bowl and stayed for dwell_time seconds
+    This is a thin dm_control wrapper around FoodTransferBase, which contains
+    the actual reward logic. This ensures consistent rewards between:
+    - Dataset generation (raw MuJoCo via FoodTransferBase)
+    - Policy evaluation (dm_control via this class)
 
+    Reward stages:
+        -1: Collision detected (robot hit bowl/container)
+        0: No reach (initial state)
+        1: Reached container (spoon within threshold + dwell time)
+        2: Reached any bowl (spoon within threshold + dwell time)
+
+    :param target: Target bowl name (default "bowl_2").
     :param reach_threshold: Distance threshold for "reached" (default 0.06m = 6cm).
     :param dwell_time: Time in seconds spoon must stay near bowl (default 2.0s).
     :param random: Random seed for environment variability.
@@ -197,17 +204,9 @@ class FoodTransferTask(TrossenAISingleArmTask):
     :param cam_list: List of cameras to capture observations.
     """
 
-    # Target positions (from teleop_scene.xml)
-    CONTAINER_POS = np.array([-0.63, -0.15, 0.04])
-    BOWL_POSITIONS = {
-        "bowl_1": np.array([-0.22, -0.26, 0.04]),
-        "bowl_2": np.array([-0.36, -0.26, 0.04]),  # TeleopPolicy target
-        "bowl_3": np.array([-0.36, -0.12, 0.04]),  # TeleopPolicy2 target
-        "bowl_4": np.array([-0.22, -0.12, 0.04]),
-    }
-
     def __init__(
         self,
+        target: str = "bowl_2",
         reach_threshold: float = 0.06,
         dwell_time: float = 2.0,
         random: int | None = None,
@@ -219,33 +218,38 @@ class FoodTransferTask(TrossenAISingleArmTask):
             onscreen_render=onscreen_render,
             cam_list=cam_list,
         )
+        self.target = target
         self.reach_threshold = reach_threshold
         self.dwell_time = dwell_time
         self.max_reward = 2
 
-        # Tracking state for dwell time
-        self._container_enter_step = None
-        self._reached_container = False
-        self._bowl_enter_step = {name: None for name in self.BOWL_POSITIONS.keys()}
-        self._reached_bowl = False
-        self._step_count = 0
-        self._steps_per_second = 50  # Simulation runs at 50Hz
+        # Will be initialized in initialize_episode when physics is available
+        self._core: FoodTransferBase | None = None
 
     def initialize_episode(self, physics: Physics) -> None:
         """
-        Initializes the episode, resetting the robot's pose and tracking state.
+        Initializes the episode, resetting the robot's pose and reward tracking.
 
         :param physics: The MuJoCo physics simulation instance.
         """
         with physics.reset_context():
             physics.named.data.qpos[:8] = START_ARM_POSE[:8]
 
-        # Reset tracking state
-        self._container_enter_step = None
-        self._reached_container = False
-        self._bowl_enter_step = {name: None for name in self.BOWL_POSITIONS.keys()}
-        self._reached_bowl = False
-        self._step_count = 0
+        # Create or reset the core FoodTransferBase instance
+        # Use dm_control's physics (model.ptr and data are the raw MuJoCo objects)
+        if self._core is None:
+            self._core = FoodTransferBase(
+                target=self.target,
+                model=physics.model.ptr,
+                data=physics.data,
+                skip_ik=True,  # Don't need IK for reward calculation
+            )
+            # Override config with our parameters
+            self._core.config.reach_threshold = self.reach_threshold
+            self._core.config.dwell_time = self.dwell_time
+        else:
+            # Reset the existing core instance
+            self._core.reset()
 
         super().initialize_episode(physics)
 
@@ -260,14 +264,12 @@ class FoodTransferTask(TrossenAISingleArmTask):
         env_state = physics.data.qpos.copy()
         return env_state
 
-    def _get_spoon_position(self, physics: Physics) -> np.ndarray:
-        """Get the current XYZ position of the spoon body."""
-        spoon_id = physics.model.name2id("spoon", "body")
-        return physics.data.xpos[spoon_id].copy()
-
     def get_reward(self, physics: Physics) -> int:
         """
         Computes the reward based on task progress.
+
+        Delegates to FoodTransferBase.get_reward() for consistent reward logic
+        between dataset generation and policy evaluation.
 
         Reward stages:
             -1: Collision detected (robot hit bowl/container)
@@ -278,56 +280,11 @@ class FoodTransferTask(TrossenAISingleArmTask):
         :param physics: The MuJoCo physics simulation instance.
         :return: The computed reward (-1, 0, 1, or 2).
         """
-        self._step_count += 1
-        spoon_pos = self._get_spoon_position(physics)
-        dwell_steps = int(self.dwell_time * self._steps_per_second)
-
-        # Get actual positions from simulation
-        container_pos = physics.named.data.xpos["container"]
-
-        # Check container reach with dwell time (XY distance)
-        container_dist = np.linalg.norm(spoon_pos[:2] - container_pos[:2])
-        if container_dist < self.reach_threshold:
-            # Inside threshold zone
-            if self._container_enter_step is None:
-                self._container_enter_step = self._step_count
-            # Check if we've dwelled long enough
-            steps_in_zone = self._step_count - self._container_enter_step
-            if steps_in_zone >= dwell_steps:
-                self._reached_container = True
-        else:
-            # Left threshold zone, reset dwell timer
-            self._container_enter_step = None
-
-        # Check bowl reach with dwell time
-
-        for bowl_name in self.BOWL_POSITIONS.keys():
-            bowl_pos = physics.named.data.xpos[bowl_name]
-            bowl_dist = np.linalg.norm(spoon_pos[:2] - bowl_pos[:2])
-
-            if bowl_dist < self.reach_threshold:
-                # Inside threshold zone
-                if self._bowl_enter_step[bowl_name] is None:
-                    self._bowl_enter_step[bowl_name] = self._step_count
-                # Check if we've dwelled long enough
-                steps_in_zone = self._step_count - self._bowl_enter_step[bowl_name]
-                if steps_in_zone >= dwell_steps:
-                    self._reached_bowl = True
-            else:
-                # Left threshold zone, reset dwell timer
-                self._bowl_enter_step[bowl_name] = None
-
-        # Check collision - return -1 if robot hits bowl/container
-        if has_robot_obstacle_collision(physics.model.ptr, physics.data):
-            return -1
-
-        # Compute reward
-        if self._reached_bowl:
-            return 2
-        elif self._reached_container:
-            return 1
-        else:
+        if self._core is None:
             return 0
+
+        # Delegate to FoodTransferBase for reward calculation (includes collision check)
+        return self._core.get_reward(check_collision=True)
 
 
 def test_sim_teleop():

@@ -408,14 +408,56 @@ python -m trossen_arm_mujoco.scripts.record_food_transfer_ik \
     --dr_seed 42
 ```
 
-Arguments:
-- `--enable_dr`: Enable domain randomization
+**Geometric DR Arguments:**
+- `--enable_dr`: Enable geometric domain randomization (positions, rotations, bowl count)
 - `--dr_position_noise`: Position noise standard deviation in meters (default: 0.03)
 - `--dr_rotation_noise`: Bowl rotation noise standard deviation in radians (default: 0.1)
 - `--dr_container_rotation`: Container rotation noise standard deviation in radians (default: 0.15)
 - `--dr_min_bowls`: Minimum number of bowls in scene (default: 1)
 - `--dr_max_bowls`: Maximum number of bowls in scene (default: 8)
+- `--dr_randomize_container`: Randomize container position within workspace
 - `--dr_seed`: Random seed for reproducibility (optional)
+
+**Visual DR Arguments:**
+- `--enable_visual_dr`: Enable visual domain randomization (textures, lighting)
+- `--dr_num_table_textures`: Number of table/counter textures available (default: 100)
+- `--dr_num_floor_textures`: Number of floor textures available (default: 100)
+- `--dr_randomize_lighting`: Randomize lighting intensity and color
+- `--dr_light_intensity_min`: Minimum light intensity multiplier (default: 0.5)
+- `--dr_light_intensity_max`: Maximum light intensity multiplier (default: 1.2)
+
+**Batch/Episode Numbering (for extending datasets):**
+- `--start_batch`: Starting batch number for naming (default: 0). Use when extending an existing dataset to avoid overwriting batches.
+- `--start_episode`: Starting episode number for naming (default: 0). Use when extending an existing dataset to continue numbering.
+
+**Example with full domain randomization:**
+```bash
+python -m trossen_arm_mujoco.scripts.generate_dataset_hf \
+    --output_dir ./visual_dr_dataset \
+    --hf_repo_id "your-org/dataset-name" \
+    --scene wxai/teleop_scene_8bowl.xml \
+    --num_episodes 200 \
+    --workers 3 \
+    --batch_size 10 \
+    --enable_dr \
+    --enable_visual_dr \
+    --dr_randomize_container \
+    --dr_seed 42 \
+    --keep_videos
+```
+
+**Example extending an existing dataset:**
+```bash
+python -m trossen_arm_mujoco.scripts.generate_dataset_hf \
+    --output_dir ./visual_dr_dataset \
+    --hf_repo_id "your-org/dataset-name" \
+    --num_episodes 200 \
+    --start_batch 160 \
+    --start_episode 1600 \
+    --enable_dr \
+    --enable_visual_dr \
+    --dr_seed 1642
+```
 
 ## Customization
 

@@ -390,6 +390,33 @@ Arguments:
 - `--scene`: Scene XML file (relative to assets/ directory)
 - `--target`: Target bowl (`bowl_1`, `bowl_2`, `bowl_3`, `bowl_4`, or `all` to cycle)
 
+### 5.7 Domain Randomization
+
+Record food transfer demonstrations with domain randomization for improved policy generalization. Domain randomization varies object positions, orientations, and the number of bowls in the scene.
+
+```bash
+# Record 50 episodes with full domain randomization (1-8 bowls)
+python -m trossen_arm_mujoco.scripts.record_food_transfer_ik \
+    --output_dir dr_dataset \
+    --num_episodes 50 \
+    --enable_dr \
+    --dr_position_noise 0.03 \
+    --dr_rotation_noise 0.1 \
+    --dr_container_rotation 0.15 \
+    --dr_min_bowls 1 \
+    --dr_max_bowls 8 \
+    --dr_seed 42
+```
+
+Arguments:
+- `--enable_dr`: Enable domain randomization
+- `--dr_position_noise`: Position noise standard deviation in meters (default: 0.03)
+- `--dr_rotation_noise`: Bowl rotation noise standard deviation in radians (default: 0.1)
+- `--dr_container_rotation`: Container rotation noise standard deviation in radians (default: 0.15)
+- `--dr_min_bowls`: Minimum number of bowls in scene (default: 1)
+- `--dr_max_bowls`: Maximum number of bowls in scene (default: 8)
+- `--dr_seed`: Random seed for reproducibility (optional)
+
 ## Customization
 
 ### 1. Modifying Tasks

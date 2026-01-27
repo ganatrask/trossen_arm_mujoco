@@ -99,7 +99,7 @@ class TrossenMinkIK:
         self.ee_name = ee_name
         self.frame_type = self._get_frame_type(ee_name)
 
-        print(f"Mink IK initialized with end-effector: {ee_name} (type: {self.frame_type})")
+        # print(f"Mink IK initialized with end-effector: {ee_name} (type: {self.frame_type})")
 
         # Create IK task
         self.ee_task = mink.FrameTask(

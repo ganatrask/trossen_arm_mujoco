@@ -10,6 +10,8 @@ This package supports two types of simulation environments:
 1. End-Effector (EE) Controlled Simulation ([`ee_sim_env.py`](./trossen_arm_mujoco/ee_sim_env.py)): Uses motion capture bodies to move the arms
 2. Joint-Controlled Simulation ([`sim_env.py`](./trossen_arm_mujoco/sim_env.py)): Uses joint position controllers
 
+It also includes a **ROS 2 bridge** ([`mujoco_ros2_bridge.py`](./trossen_arm_mujoco/scripts/mujoco_ros2_bridge.py)) that connects MuJoCo to a full ROS 2 motion planning stack (MoveIt 2 + OMPL + cuMotion + nvblox) as a drop-in replacement for Isaac Sim. See [docs/mujoco_ros2_bridge.md](./docs/mujoco_ros2_bridge.md).
+
 ## Installation
 
 First, clone this repository:
@@ -499,6 +501,25 @@ The simulation uses XML files stored in the `assets/` directory. To introduce a 
 1. Create a new XML configuration file in `assets/` with desired object placements and constraints.
 2. Modify `sim_env.py` to load the new environment by specifying the new XML file.
 3. Update the scripted policies in `scripted_policy.py` to accommodate new task goals and constraints.
+
+## ROS 2 Bridge (MuJoCo + MoveIt + cuMotion + nvblox)
+
+The bridge replaces Isaac Sim as the physics backend while keeping the full cuMotion/nvblox pipeline unchanged.
+
+```bash
+# T1 — start MuJoCo sim with ROS 2 interface
+python3 -m trossen_arm_mujoco.scripts.mujoco_ros2_bridge
+
+# T2 — ros2_control (unchanged from Isaac Sim setup)
+ros2 launch trossen_arm_bringup trossen_arm.launch.py \
+    arm_variant:=follower ros2_control_hardware_type:=isaac_sim use_rviz:=false
+
+# T3–T7 — trajectory relay, MoveIt, robot segmentation, nvblox, cuMotion (all unchanged)
+```
+
+The bridge publishes `/joint_states`, subscribes to `/joint_commands`, and publishes `/depth` + `/rgb` + `/camera_info` for nvblox. The `isaac_sim` hardware type in `trossen_arm_bringup` uses `topic_based_ros2_control` which is simulator-agnostic — it only needs these topics, so no changes are required to T2–T7.
+
+See [docs/mujoco_ros2_bridge.md](./docs/mujoco_ros2_bridge.md) for full documentation including threading architecture, CLI reference, joint mapping, and troubleshooting.
 
 ## TroubleshootingConfiguration
 Tasks
